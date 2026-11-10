@@ -1,0 +1,41 @@
+# Diagnostic sweep: why does RIGID work on ImageNet but not elsewhere?
+#   uv run python scripts/diagnose.py --config configs/diagnose.yaml
+
+N_NOISE: 1
+LAMB: 0.05
+MODEL_NAME: dinov2_vitl14
+IMAGE_SIZE: 224
+IMAGES_PER_SET: 300
+BATCH_SIZE: 32
+NUM_WORKERS: 4
+SEED: 100
+OUTPUT_DIR: results/diagnose
+
+# squash      = paper/notebook (resize to 224x224, aspect ignored)
+# short_crop  = shorter side -> 256, center crop 224 (aspect kept)
+# native_crop = center 224x224 crop at native resolution, no resampling
+# matchS      = shorter side -> S, center crop SxS, then resize to 224 (same factor for every set)
+# matchS_jpegQ = same, plus a JPEG round-trip at quality Q before the final resize
+# Sets smaller than S are skipped (no upscaling).
+PIPELINES: [squash, short_crop, native_crop, match256, match256_jpeg90, match512, match512_jpeg90]
+
+# native_size = smallest side in pixels; sets smaller than IMAGE_SIZE skip native_crop
+SETS:
+  imagenet_real:   {label: real, native_size: 256,  path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet}
+  raise_real:      {label: real, native_size: 2848, path: /Volumes/Kioxia SSD/datasets/raise1k}
+  cifake_real:     {label: real, native_size: 32,   path: ~/.cache/kagglehub/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test/REAL}
+  imagenet_adm:    {label: fake, native_size: 256,  path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-ADM}
+  sb_glide:        {label: fake, native_size: 256,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/glide}
+  sb_sd14:         {label: fake, native_size: 512,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-1-4}
+  sb_sd2:          {label: fake, native_size: 512,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-2}
+  sb_sdxl:         {label: fake, native_size: 640,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-xl}
+  sb_dalle3:       {label: fake, native_size: 1024, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/dalle3}
+  sb_midjourney:   {label: fake, native_size: 896,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/midjourney-v5}
+  cifake_fake:     {label: fake, native_size: 32,   path: ~/.cache/kagglehub/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test/FAKE}
+
+# Mean AUROC over these pair groups, per pipeline (printed at the end)
+SUMMARY:
+  "ImageNet: real vs ADM":            {real: imagenet_real, fakes: [imagenet_adm]}
+  "Synthbuster: RAISE vs generators":  {real: raise_real, fakes: [sb_glide, sb_sd14, sb_sd2, sb_sdxl, sb_dalle3, sb_midjourney]}
+  "Synthbuster gens vs ImageNet real": {real: imagenet_real, fakes: [sb_glide, sb_sd14, sb_sd2, sb_sdxl, sb_dalle3, sb_midjourney]}
+  "CIFAKE: real vs fake":             {real: cifake_real, fakes: [cifake_fake]}

@@ -1,0 +1,28 @@
+# Embeddings for probe training (scripts/extract_embeddings.py -> scripts/train_probe.py)
+# Paper preprocessing (squash to 224), lambda 0.05, one fixed-seed noise draw per image.
+LAMB: 0.05
+MODEL_NAME: dinov2_vitl14
+IMAGE_SIZE: 224
+BATCH_SIZE: 32
+NUM_WORKERS: 4
+SEED: 100
+OUTPUT_DIR: results/embeddings
+
+# label: real | fake.  dataset: used for cross-dataset splits.  source: generator / origin.
+# group_by_stem: put files with the same stem (Synthbuster fake <-> RAISE photo) in one group.
+# n: max images (random sample); omit for all.
+SETS:
+  raise_real:      {label: real, dataset: synthbuster, source: raise, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/raise1k}
+  sb_dalle2: {label: fake, dataset: synthbuster, source: dalle2, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/dalle2}
+  sb_dalle3: {label: fake, dataset: synthbuster, source: dalle3, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/dalle3}
+  sb_firefly: {label: fake, dataset: synthbuster, source: firefly, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/firefly}
+  sb_glide: {label: fake, dataset: synthbuster, source: glide, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/glide}
+  sb_midjourney-v5: {label: fake, dataset: synthbuster, source: midjourney-v5, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/midjourney-v5}
+  sb_stable-diffusion-1-3: {label: fake, dataset: synthbuster, source: stable-diffusion-1-3, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-1-3}
+  sb_stable-diffusion-1-4: {label: fake, dataset: synthbuster, source: stable-diffusion-1-4, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-1-4}
+  sb_stable-diffusion-2: {label: fake, dataset: synthbuster, source: stable-diffusion-2, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-2}
+  sb_stable-diffusion-xl: {label: fake, dataset: synthbuster, source: stable-diffusion-xl, group_by_stem: true, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-xl}
+  imagenet_real:   {label: real, dataset: imagenet, source: imagenet, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet}
+  imagenet_adm:    {label: fake, dataset: imagenet, source: adm, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-ADM}
+  imagenet_ldm:    {label: fake, dataset: imagenet, source: ldm, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-LDM}
+  imagenet_biggan: {label: fake, dataset: imagenet, source: biggan, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-BigGAN}

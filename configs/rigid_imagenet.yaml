@@ -1,0 +1,22 @@
+# RIGID evaluation on the paper's ImageNet256 benchmark (subset). Run:
+#   uv run python scripts/evaluate.py --config configs/rigid_imagenet.yaml
+# Fetch 1000 real + 1000 ADM images first (see scripts/fetch_zip_subset.py docstring).
+
+# --- method ---
+THRESHOLD: 0.95            # similarity >= THRESHOLD -> real, below -> AI-generated
+N_NOISE: 1                 # noise draws averaged per image (1 = same as the IBM notebook)
+LAMB: 0.05                 # noise intensity (paper default)
+MODEL_NAME: dinov2_vitl14  # dinov2_vits14 | dinov2_vitb14 | dinov2_vitl14 | dinov2_vitg14
+
+# --- data ---
+DATASET_NAME: rigid_imagenet
+SPLIT: adm                 # adm | all (every Imagenet256-* folder under DATA_ROOT)
+MAX_IMAGES_PER_CLASS: 1000 # per group (folders now hold more images than the original 1000)
+DATA_ROOT: /Volumes/Kioxia SSD/datasets/rigid_imagenet
+
+# --- runtime ---
+BATCH_SIZE: 64
+NUM_WORKERS: 4
+DEVICE: null               # null = auto (cuda > mps > cpu)
+SEED: 100
+OUTPUT_DIR: results

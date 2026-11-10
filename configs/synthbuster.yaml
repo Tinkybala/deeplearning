@@ -1,0 +1,25 @@
+# RIGID evaluation on Synthbuster (fake, Kaggle) vs RAISE-1k (real, local). Run:
+#   uv run python scripts/evaluate.py --config configs/synthbuster.yaml
+# First download RAISE-1k:
+#   uv run python scripts/download_raise1k.py --csv ~/Downloads/RAISE_1k.csv --out "/Volumes/Kioxia SSD/datasets/raise1k"
+
+# --- method ---
+THRESHOLD: 0.95            # similarity >= THRESHOLD -> real, below -> AI-generated
+N_NOISE: 1                 # noise draws averaged per image (1 = same as the IBM notebook)
+LAMB: 0.05                 # noise intensity (paper default)
+MODEL_NAME: dinov2_vitl14  # dinov2_vits14 | dinov2_vitb14 | dinov2_vitl14 | dinov2_vitg14
+
+# --- data ---
+DATASET_NAME: synthbuster  # key in utils/datasets.py DATASETS
+SPLIT: all                 # all | dalle2 | dalle3 | firefly | glide | midjourney-v5 |
+                           # stable-diffusion-1-3 | -1-4 | -2 | -xl
+MAX_IMAGES_PER_CLASS: null # per group (real, and each generator); null = all 1000
+REAL_DATA_ROOT: /Volumes/Kioxia SSD/datasets/raise1k
+DOWNLOAD_DIR: /Volumes/Kioxia SSD/datasets/kagglehub   # Kaggle cache (13.6 GB), off the internal disk
+
+# --- runtime ---
+BATCH_SIZE: 32
+NUM_WORKERS: 4
+DEVICE: null               # null = auto (cuda > mps > cpu)
+SEED: 100
+OUTPUT_DIR: results
