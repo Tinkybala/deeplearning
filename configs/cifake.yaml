@@ -11,7 +11,7 @@ MODEL_NAME: dinov2_vitl14  # dinov2_vits14 | dinov2_vitb14 | dinov2_vitl14 | din
 DATASET_NAME: cifake       # key in utils/datasets.py DATASETS
 SPLIT: test                # cifake: test | train
 MAX_IMAGES_PER_CLASS: 1000 # null = use every image (cifake test = 10k real + 10k fake)
-DATA_ROOT: null            # set to a local folder to skip downloading
+DATA_ROOT: dataset/image   # paths under this root follow the repository dataset hierarchy
 DOWNLOAD_DIR: null         # Kaggle cache folder; null = ~/.cache/kagglehub
 
 # --- runtime ---

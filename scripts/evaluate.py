@@ -25,8 +25,8 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from rigid import RIGIDDetector, calibrate_threshold  # noqa: E402
-from utils import load_dataset, skip_none_collate  # noqa: E402
+from rigid import RIGIDDetector, calibrate_threshold
+from utils import load_dataset, skip_none_collate
 
 REQUIRED = ["THRESHOLD", "N_NOISE", "LAMB", "MODEL_NAME", "DATASET_NAME"]
 DEFAULTS = {
@@ -96,6 +96,13 @@ def main() -> None:
     parser.add_argument("--config", type=Path, required=True)
     args = parser.parse_args()
     cfg = load_config(args.config)
+    # Resolve all configured relative paths against the project directory rather
+    # than depending on the shell's current working directory.
+    for key in ("DATA_ROOT", "REAL_DATA_ROOT", "FAKE_DATA_ROOT", "DOWNLOAD_DIR"):
+        value = cfg.get(key)
+        if value:
+            path = Path(value).expanduser()
+            cfg[key] = str(path if path.is_absolute() else (ROOT / path).resolve())
 
     torch.manual_seed(cfg["SEED"])
     detector = RIGIDDetector(
@@ -152,10 +159,30 @@ def main() -> None:
         w = csv.writer(f)
         w.writerow(["path", "label", "group", "similarity", "predicted"])
         for path, y, g, s in zip(paths, labels, groups, scores):
-            w.writerow([path, "real" if y == 1 else "fake", g, f"{s:.6f}",
+            source_path = Path(path)
+            try:
+                portable_path = source_path.relative_to(ROOT).as_posix()
+            except ValueError:
+                portable_path = source_path.name
+            w.writerow([portable_path, "real" if y == 1 else "fake", g, f"{s:.6f}",
                         "real" if s >= cfg["THRESHOLD"] else "fake"])
-    summary = {"config": cfg, "num_images": len(scores), "seconds": round(elapsed, 1),
-               "skipped_images": skipped, "metrics": results, "per_group": per_group}
+    public_cfg = dict(cfg)
+    for key in ("DATA_ROOT", "REAL_DATA_ROOT", "FAKE_DATA_ROOT", "DOWNLOAD_DIR"):
+        if public_cfg.get(key):
+            path = Path(public_cfg[key])
+            try:
+                public_cfg[key] = path.relative_to(ROOT).as_posix()
+            except ValueError:
+                public_cfg[key] = path.name
+    portable_skipped = []
+    for skipped_path in skipped:
+        path = Path(skipped_path)
+        try:
+            portable_skipped.append(path.relative_to(ROOT).as_posix())
+        except ValueError:
+            portable_skipped.append(path.name)
+    summary = {"config": public_cfg, "num_images": len(scores), "seconds": round(elapsed, 1),
+               "skipped_images": portable_skipped, "metrics": results, "per_group": per_group}
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
 
     if per_group:

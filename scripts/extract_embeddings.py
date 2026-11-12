@@ -30,8 +30,13 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from rigid import RIGIDDetector  # noqa: E402
-from utils.datasets import IMAGE_EXTS, ImageListDataset, skip_none_collate  # noqa: E402
+from rigid import RIGIDDetector
+from utils.datasets import IMAGE_EXTS, ImageListDataset, skip_none_collate
+
+
+def configured_path(value: str) -> Path:
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else (ROOT / path).resolve()
 
 
 def list_images(folder: Path, n: int | None, seed: int) -> list[Path]:
@@ -86,10 +91,17 @@ def main() -> None:
         if out.exists():
             print(f"{name}: exists, skipping")
             continue
-        files = list_images(Path(spec["path"]).expanduser(), spec.get("n"), cfg["SEED"])
+        files = list_images(configured_path(spec["path"]), spec.get("n"), cfg["SEED"])
         print(f"{name}: {len(files)} images ({spec['label']}, source={spec['source']})")
         rec = extract(detector, files, cfg)
         n = len(rec["path"])
+        portable_paths = []
+        for path in rec["path"]:
+            try:
+                portable_paths.append(Path(path).relative_to(ROOT).as_posix())
+            except ValueError:
+                portable_paths.append(Path(path).name)
+        rec["path"] = np.asarray(portable_paths)
         # group = scene id: Synthbuster fakes share the RAISE file stem of the photo they were
         # prompted from, so real and fake versions of a scene land in the same split.
         groups = np.array([f"{spec['dataset']}:{Path(p).stem}" if spec.get("group_by_stem")

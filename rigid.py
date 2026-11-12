@@ -25,6 +25,8 @@ from torchvision import transforms
 
 DEFAULT_MEAN = (0.485, 0.456, 0.406)
 DEFAULT_STD = (0.229, 0.224, 0.225)
+PROJECT_ROOT = Path(__file__).resolve().parent
+DINO_MODEL_ROOT = PROJECT_ROOT / "model" / "DINOv2" / "Frozen DINO model"
 
 # Backbones available from torch.hub 'facebookresearch/dinov2'. The paper uses vitl14.
 DINOV2_MODELS = ("dinov2_vits14", "dinov2_vitb14", "dinov2_vitl14", "dinov2_vitg14")
@@ -51,9 +53,10 @@ def build_transform(image_size: int = 224) -> transforms.Compose:
 
 
 def load_model(name: str = "dinov2_vitl14", device: str | None = None) -> torch.nn.Module:
-    """Download (first time only, cached by torch.hub) and return a frozen DINOv2 model."""
+    """Load frozen DINOv2 weights, cached under the project's model directory."""
     if name not in DINOV2_MODELS:
         raise ValueError(f"Unknown model {name!r}; choose from {DINOV2_MODELS}")
+    torch.hub.set_dir(str(DINO_MODEL_ROOT / "torch_hub"))
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="xFormers is not available")  # optional speedup only
         model = torch.hub.load("facebookresearch/dinov2", name)

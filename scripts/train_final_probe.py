@@ -1,7 +1,7 @@
 """Train the final RIGID probe on cached embeddings and save it for rigid_probe.ProbeDetector.
 
     uv run python scripts/train_final_probe.py                       # clean+diff, all datasets
-    uv run python scripts/train_final_probe.py --datasets synthbuster --out models/probe_sb.joblib
+    uv run python scripts/train_final_probe.py --datasets synthbuster
 
 Uses embeddings from scripts/extract_embeddings.py; the noise strength, backbone and
 image size are read from that config and stored with the probe so inference matches.
@@ -24,7 +24,7 @@ from sklearn.preprocessing import StandardScaler
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from rigid_probe import build_features, make_mlp  # noqa: E402
+from rigid_probe import build_features, make_mlp
 
 
 def train_mlp(Xs: np.ndarray, y: np.ndarray, hidden: int, seed: int = 0, epochs: int = 300):
@@ -67,7 +67,7 @@ def main() -> None:
     parser.add_argument("--C", type=float, default=0.1, help="logreg: inverse L2 regularization strength")
     parser.add_argument("--hidden", type=int, default=256, help="mlp: hidden units")
     parser.add_argument("--out", type=Path, default=None,
-                        help="default: models/probe_<features>[_mlp].joblib")
+                        help="default: model/DINOv2/Frozen DINO model/probes/*.joblib")
     args = parser.parse_args()
 
     cfg = {"LAMB": 0.05, "MODEL_NAME": "dinov2_vitl14", "IMAGE_SIZE": 224, "SEED": 100,
@@ -103,7 +103,9 @@ def main() -> None:
     train_auc = roc_auc_score(y, train_scores)
     meta["train_auroc"] = float(train_auc)
 
-    out = args.out or ROOT / f"models/probe_{args.features.replace('+', '_')}{'_mlp' if args.model == 'mlp' else ''}.joblib"
+    out = args.out or ROOT / "model/DINOv2/Frozen DINO model/probes" / (
+        f"probe_{args.features.replace('+', '_')}{'_mlp' if args.model == 'mlp' else ''}.joblib"
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(bundle, out)
     print(f"Trained {args.model} on {datasets}: {meta['n_real']} real + {meta['n_fake']} fake "

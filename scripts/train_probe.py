@@ -48,7 +48,8 @@ def load(emb_dir: Path) -> dict:
                                                             "source", "dataset", "path"]}
     d["clean"] = d["clean"].astype(np.float32)
     d["noisy"] = d["noisy"].astype(np.float32)
-    d["split"] = np.array(["test" if "/test/" in p else "train" for p in d["path"]])  # CIFAKE only
+    d["split"] = np.array(["test" if "/test/" in Path(p).as_posix() else "train"
+                           for p in d["path"]])  # CIFAKE only
     return d
 
 

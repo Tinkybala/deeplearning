@@ -8,7 +8,7 @@ labelled real and fake images (see scripts/train_final_probe.py).
 
 Usage:
     from rigid_probe import ProbeDetector
-    det = ProbeDetector("models/probe_clean_diff.joblib")
+    det = ProbeDetector("model/DINOv2/Frozen DINO model/probes/probe_clean_diff.joblib")
     print(det.predict("some_image.png"))
 """
 

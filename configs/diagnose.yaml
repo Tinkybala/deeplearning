@@ -23,7 +23,7 @@ PIPELINES: [squash, short_crop, native_crop, match256, match256_jpeg90, match512
 SETS:
   imagenet_real:   {label: real, native_size: 256,  path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet}
   raise_real:      {label: real, native_size: 2848, path: /Volumes/Kioxia SSD/datasets/raise1k}
-  cifake_real:     {label: real, native_size: 32,   path: ~/.cache/kagglehub/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test/REAL}
+  cifake_real:     {label: real, native_size: 32,   path: dataset/image/test/CiFake/test/REAL}
   imagenet_adm:    {label: fake, native_size: 256,  path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-ADM}
   sb_glide:        {label: fake, native_size: 256,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/glide}
   sb_sd14:         {label: fake, native_size: 512,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-1-4}
@@ -31,7 +31,7 @@ SETS:
   sb_sdxl:         {label: fake, native_size: 640,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/stable-diffusion-xl}
   sb_dalle3:       {label: fake, native_size: 1024, path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/dalle3}
   sb_midjourney:   {label: fake, native_size: 896,  path: /Volumes/Kioxia SSD/datasets/kagglehub/datasets/maryjoy12/synthbuster/versions/1/synthbuster/midjourney-v5}
-  cifake_fake:     {label: fake, native_size: 32,   path: ~/.cache/kagglehub/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images/versions/3/test/FAKE}
+  cifake_fake:     {label: fake, native_size: 32,   path: dataset/image/test/CiFake/test/FAKE}
 
 # Mean AUROC over these pair groups, per pipeline (printed at the end)
 SUMMARY:

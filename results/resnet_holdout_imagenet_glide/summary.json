@@ -1,0 +1,103 @@
+{
+  "model": "ResNet-18 fine-tuned from ImageNet pretrained weights",
+  "held_out_generator": "imagenet_glide",
+  "seen_generators": [
+    "imagenet_ai_0419_biggan",
+    "imagenet_ai_0419_vqdm",
+    "imagenet_ai_0424_sdv5",
+    "imagenet_ai_0424_wukong",
+    "imagenet_ai_0508_adm",
+    "imagenet_midjourney"
+  ],
+  "train_images": 13600,
+  "validation_images": 3400,
+  "test_images": 1000,
+  "best_epoch": 8,
+  "threshold_selected_on_seen_validation": 0.13410119712352753,
+  "seen_validation_balanced_accuracy": 0.7965833333333333,
+  "epochs": 8,
+  "batch_size": 32,
+  "seed": 42,
+  "device": "cuda",
+  "evaluation_seconds": 247.4,
+  "torch_version": "2.15.0+cu132",
+  "torchvision_version": "0.29.2+cu132",
+  "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "test_metrics": {
+    "clean": {
+      "n": 1000,
+      "accuracy": 0.851,
+      "balanced_accuracy": 0.851,
+      "auroc_real_positive": 0.9305319999999999,
+      "fake_f1": 0.8619091751621872,
+      "threshold": 0.13410119712352753,
+      "real_correct": 386,
+      "real_total": 500,
+      "fake_correct": 465,
+      "fake_total": 500
+    },
+    "jpeg_q50": {
+      "n": 1000,
+      "accuracy": 0.567,
+      "balanced_accuracy": 0.567,
+      "auroc_real_positive": 0.571708,
+      "fake_f1": 0.45534591194968554,
+      "threshold": 0.13410119712352753,
+      "real_correct": 386,
+      "real_total": 500,
+      "fake_correct": 181,
+      "fake_total": 500
+    },
+    "resize_128": {
+      "n": 1000,
+      "accuracy": 0.708,
+      "balanced_accuracy": 0.708,
+      "auroc_real_positive": 0.8729399999999999,
+      "fake_f1": 0.7693522906793049,
+      "threshold": 0.13410119712352753,
+      "real_correct": 221,
+      "real_total": 500,
+      "fake_correct": 487,
+      "fake_total": 500
+    },
+    "resize_64": {
+      "n": 1000,
+      "accuracy": 0.51,
+      "balanced_accuracy": 0.51,
+      "auroc_real_positive": 0.539052,
+      "fake_f1": 0.6680216802168022,
+      "threshold": 0.13410119712352753,
+      "real_correct": 17,
+      "real_total": 500,
+      "fake_correct": 493,
+      "fake_total": 500
+    },
+    "resize_32": {
+      "n": 1000,
+      "accuracy": 0.503,
+      "balanced_accuracy": 0.503,
+      "auroc_real_positive": 0.574676,
+      "fake_f1": 0.6675585284280936,
+      "threshold": 0.13410119712352753,
+      "real_correct": 4,
+      "real_total": 500,
+      "fake_correct": 499,
+      "fake_total": 500
+    },
+    "resize_jpeg_128": {
+      "n": 1000,
+      "accuracy": 0.618,
+      "balanced_accuracy": 0.618,
+      "auroc_real_positive": 0.674584,
+      "fake_f1": 0.5127551020408163,
+      "threshold": 0.13410119712352753,
+      "real_correct": 417,
+      "real_total": 500,
+      "fake_correct": 201,
+      "fake_total": 500
+    }
+  },
+  "training_data_root": "dataset/image/training/GenImage",
+  "test_data_root": "dataset/image/test/GenImage",
+  "test_split": "test"
+}

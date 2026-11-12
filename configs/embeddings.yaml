@@ -26,3 +26,8 @@ SETS:
   imagenet_adm:    {label: fake, dataset: imagenet, source: adm, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-ADM}
   imagenet_ldm:    {label: fake, dataset: imagenet, source: ldm, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-LDM}
   imagenet_biggan: {label: fake, dataset: imagenet, source: biggan, path: /Volumes/Kioxia SSD/datasets/rigid_imagenet/Imagenet256-BigGAN}
+
+  cifake_train_real: {label: real, dataset: cifake, source: cifar10, path: dataset/image/training/CiFake/train/REAL}
+  cifake_train_fake: {label: fake, dataset: cifake, source: stable-diffusion-1-4, path: dataset/image/training/CiFake/train/FAKE}
+  cifake_test_real: {label: real, dataset: cifake, source: cifar10, path: dataset/image/test/CiFake/test/REAL}
+  cifake_test_fake: {label: fake, dataset: cifake, source: stable-diffusion-1-4, path: dataset/image/test/CiFake/test/FAKE}

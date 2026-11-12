@@ -16,8 +16,8 @@ pipeline only scores what is new.
 from __future__ import annotations
 
 import argparse
-import itertools
 import io
+import itertools
 import json
 import random
 import re
@@ -28,17 +28,17 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
+from PIL import Image
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
-from PIL import Image
 from torchvision import transforms
 from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from rigid import DEFAULT_MEAN, DEFAULT_STD, RIGIDDetector  # noqa: E402
-from utils.datasets import IMAGE_EXTS, ImageListDataset, skip_none_collate  # noqa: E402
+from rigid import DEFAULT_MEAN, DEFAULT_STD, RIGIDDetector
+from utils.datasets import IMAGE_EXTS, ImageListDataset, skip_none_collate
 
 
 class JpegRoundtrip:
@@ -96,6 +96,11 @@ def list_images(folder: Path, n: int, seed: int) -> list[Path]:
     if not files:
         raise FileNotFoundError(f"No images in {folder}")
     return sorted(random.Random(seed).sample(files, min(n, len(files))))
+
+
+def configured_path(value: str) -> Path:
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else (ROOT / path).resolve()
 
 
 def score_set(detector, files, transform, cfg) -> np.ndarray:
@@ -178,7 +183,7 @@ def main() -> None:
         if f.exists():
             rec = json.loads(f.read_text())
         else:
-            files = list_images(Path(spec["path"]).expanduser(), cfg["IMAGES_PER_SET"], cfg["SEED"])
+            files = list_images(configured_path(spec["path"]), cfg["IMAGES_PER_SET"], cfg["SEED"])
             scores = score_set(detector, files, make_pipeline(pipe, cfg["IMAGE_SIZE"]), cfg)
             rec = {"scores": scores.tolist()}
             f.write_text(json.dumps(rec))

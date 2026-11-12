@@ -1,0 +1,19 @@
+# Local Python environment and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Dataset and local image samples (keep licensed/private data out of GitHub)
+archive (1)/
+dataset/image/training/GenImage/
+dataset/image/test/GenImage/
+dataset/image/training/CiFake/train/
+dataset/image/test/CiFake/test/
+test_images/
+
+# Model weights and downloaded hub source are large; keep code and metrics tracked
+model/ResNet/Frozen Resnet model/torch_hub/
+model/ResNet/Frozen Resnet model/checkpoints/
+model/DINOv2/Frozen DINO model/torch_hub/

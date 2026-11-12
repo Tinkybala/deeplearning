@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import random
 import warnings
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 from PIL import Image
 from torch.utils.data import Dataset, default_collate
@@ -57,11 +57,11 @@ SYNTHBUSTER_GENERATORS = [
 
 DATASETS: dict[str, DatasetSpec] = {
     "cifake": DatasetSpec(
-        real=[Part("kaggle", "birdy654/cifake-real-and-ai-generated-synthetic-images", ["{split}/REAL"])],
-        fake=[Part("kaggle", "birdy654/cifake-real-and-ai-generated-synthetic-images", ["{split}/FAKE"])],
-        splits={"test": "test", "train": "train"},
+        real=[Part("local", "", ["{split}/REAL"])],
+        fake=[Part("local", "", ["{split}/FAKE"])],
+        splits={"test": "test/CiFake/test", "train": "training/CiFake/train"},
         description="CIFAKE: CIFAR-10 real vs Stable Diffusion v1.4 fakes, 32x32. "
-                    "test = 10k/10k, train = 50k/50k.",
+                    "Expected under dataset/image/{training/CiFake/train,test/CiFake/test}.",
     ),
     "synthbuster": DatasetSpec(
         # RAISE-1k is not redistributable: download with scripts/download_raise1k.py and

@@ -32,7 +32,7 @@ def download(url: str, dest: Path, retries: int = 3) -> str:
                 with open(tmp, "wb") as f:
                     shutil.copyfileobj(r, f, length=1 << 20)
             if expected and tmp.stat().st_size != expected:
-                raise IOError(f"size {tmp.stat().st_size} != {expected}")
+                raise OSError(f"size {tmp.stat().st_size} != {expected}")
             tmp.replace(dest)
             return "ok"
         except Exception as e:  # noqa: BLE001

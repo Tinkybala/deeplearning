@@ -71,7 +71,7 @@ def main() -> None:
                     local.zip = RemoteZip(url)  # one connection per thread
                 tmp.write_bytes(local.zip.read(name))
                 break
-            except Exception:  # noqa: BLE001
+            except Exception:
                 if attempt == 5:
                     raise
                 if hasattr(local, "zip"):
