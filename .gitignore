@@ -1,5 +1,5 @@
 # Local Python environment and caches
-.venv/
+.venv
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -16,8 +16,11 @@ test_images/
 # Model weights and downloaded hub source are large; keep code and metrics tracked
 model/ResNet/Frozen Resnet model/torch_hub/
 model/ResNet/Frozen Resnet model/checkpoints/
-model/DINOv2/Frozen DINO model/torch_hub/
+model/DINOv2/Frozen DINO model/torch_hub
 
 # Frozen-DINOv2 GenImage holdout: cached embeddings and fitted probes are large and reproducible
-results/dinov2_embeddings/
+results/dinov2_embeddings
 model/DINOv2/Frozen DINO model/checkpoints/
+
+# Originals left behind after moving the venv, DINOv2 hub cache and embeddings out of iCloud
+*-icloud-old/

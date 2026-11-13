@@ -129,18 +129,18 @@ python scripts/compare_holdout_results.py --held-out imagenet_glide
 
 Each detector writes `results/dinov2_<detector>[_<augmentation>]_holdout_<generator>/{summary.json,test_scores.csv}` in the ResNet format. `compare_holdout_results.py` puts every ResNet and DINOv2 run for one holdout into Markdown tables at `results/comparison_holdout_<generator>.md`. Embeddings are cached in `results/dinov2_embeddings/`, and fitted probes in `model/DINOv2/Frozen DINO model/checkpoints/`; both are git-ignored. `--augmentation` applies the ResNet study's JPEG/resize artifacts once to the fit images before embedding. `--model-name dinov2_vitb14` gives a faster backbone, and `--max-per-group N` gives a quick subset run whose results are tagged and left out of the comparison by default.
 
-#### Leave-one-generator-out (6 of 7 generators so far)
+#### Leave-one-generator-out (all 7 generators)
 
-`python scripts/dinov2_genimage_holdout.py --held-out all` repeats the same protocol with each generator held out in turn, and `python scripts/summarize_logo.py` averages the holdouts into `results/logo_summary.md`. Mean balanced accuracy over the six finished holdouts (BigGAN, VQDM, SD v1.5, Wukong, ADM, GLIDE; Midjourney is still pending), with the worst holdout in brackets:
+`python scripts/dinov2_genimage_holdout.py --held-out all` repeats the same protocol with each generator held out in turn, and `python scripts/summarize_logo.py` averages the holdouts into `results/logo_summary.md`. Mean balanced accuracy over the seven holdouts (BigGAN, VQDM, SD v1.5, Wukong, ADM, GLIDE, Midjourney), with the worst holdout in brackets:
 
 | Detector | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG 50 |
 |---|---:|---:|---:|---:|---:|---:|
-| RIGID (no training) | 77.5% [64.9] | 70.6% [57.2] | 71.8% [56.7] | 58.0% [49.5] | 50.1% [49.6] | 55.4% [47.4] |
-| Logistic regression, clean | 82.5% [69.8] | **76.9%** [68.2] | 79.8% [69.2] | 74.5% [67.8] | **64.6%** [60.6] | **72.5%** [64.3] |
-| Logistic regression, clean + diff | 84.4% [74.4] | 73.5% [63.5] | 80.0% [73.9] | 71.3% [66.9] | 59.6% [55.2] | 66.2% [59.2] |
-| MLP, clean + diff | **86.5%** [76.6] | 76.5% [64.2] | **82.8%** [76.0] | **75.1%** [70.8] | 62.4% [59.3] | 70.0% [63.6] |
+| RIGID (no training) | 75.9% [64.9] | 69.1% [57.2] | 70.3% [56.7] | 57.3% [49.5] | 50.0% [49.6] | 54.4% [47.4] |
+| Logistic regression, clean | 80.5% [68.6] | **74.8%** [62.4] | 77.9% [66.8] | 73.1% [64.7] | **63.8%** [58.9] | **70.1%** [56.1] |
+| Logistic regression, clean + diff | 83.0% [74.4] | 71.5% [59.7] | 78.6% [70.4] | 70.2% [63.5] | 58.7% [53.7] | 64.4% [53.6] |
+| MLP, clean + diff | **85.3%** [76.6] | 74.7% [64.2] | **81.5%** [73.7] | **74.1%** [68.2] | 61.6% [56.5] | 68.1% [56.5] |
 
-The MLP on clean + (noisy − clean) features has the best clean balanced accuracy on five of six holdouts and the best clean AUROC on all six. Under strong degradation (32 px, 128 px + JPEG) the probe on clean features alone degrades least, consistent with the noise-sensitivity signal relying on high-frequency detail. RIGID without training is strong on BigGAN and GLIDE but weak on the Stable Diffusion family and falls to chance at 32 px. ADM is the hardest held-out generator. Per-holdout tables with bootstrap intervals are in `results/comparison_holdout_<generator>.md`, and per-class recall, error overlap, and failure montages in `results/analysis_holdout_<generator>.md` and `reports/figures/<generator>_*.png`. ResNet has so far been run only with GLIDE held out.
+The MLP on clean + (noisy − clean) features has the best clean balanced accuracy on six of seven holdouts and the best clean AUROC on all seven. Under strong degradation (32 px, 128 px + JPEG) the probe on clean features alone degrades least, consistent with the noise-sensitivity signal relying on high-frequency detail. RIGID without training is strong on BigGAN and GLIDE but weak on the Stable Diffusion family and Midjourney, and falls to chance at 32 px. ADM and Midjourney are the hardest held-out generators (best clean balanced accuracy 76.6% and 78.1%). Per-holdout tables with bootstrap intervals are in `results/comparison_holdout_<generator>.md`, and per-class recall, error overlap, and failure montages in `results/analysis_holdout_<generator>.md` and `reports/figures/<generator>_*.png`. ResNet has so far been run only with GLIDE held out.
 
 GenImage has a format confound: in every generator folder the real photos are high-quality JPEGs (luminance DC quantization step 1) at varied sizes, while the generated images are PNGs at one fixed size per generator. The recall tables show detectors exploiting it. JPEG-compressing generated test images makes them look real to the ResNet and to the clean + diff probes, and downsampling real photos makes them look generated.
 
