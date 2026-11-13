@@ -117,12 +117,45 @@ Once CIFAKE has been placed under `dataset/image/training/CiFake` and `dataset/i
 
 The base DINOv2 weights are fetched by `torch.hub` on first use and cached under `model/DINOv2/Frozen DINO model/torch_hub/`. This CIFAKE config scores up to 1,000 images per class from the test split; it does not train RIGID or a probe.
 
+### Frozen DINOv2 / RIGID on the same holdout (in progress)
+
+`scripts/dinov2_genimage_holdout.py` evaluates the frozen-DINOv2 detectors on exactly the ResNet protocol above. It imports the split, test conditions, threshold rule, and metrics from `train_resnet_generalization.py`, so it uses the same fit/validation/test images and the same seed. It runs four detectors on one frozen DINOv2 ViT-L/14 backbone: plain RIGID (no training), a logistic-regression probe on the clean embedding, and logistic-regression and MLP probes on clean + (noisy − clean), which is the probe from `rigid_probe.py`. Images use the ResNet eval preprocessing (shorter side 256, center crop 224) unless `--preprocess squash` is given.
+
+```bash
+python scripts/dinov2_genimage_holdout.py --held-out imagenet_glide
+python scripts/dinov2_genimage_holdout.py --held-out imagenet_glide --augmentation jpeg
+python scripts/compare_holdout_results.py --held-out imagenet_glide
+```
+
+Each detector writes `results/dinov2_<detector>[_<augmentation>]_holdout_<generator>/{summary.json,test_scores.csv}` in the ResNet format. `compare_holdout_results.py` puts every ResNet and DINOv2 run for one holdout into Markdown tables at `results/comparison_holdout_<generator>.md`. Embeddings are cached in `results/dinov2_embeddings/`, and fitted probes in `model/DINOv2/Frozen DINO model/checkpoints/`; both are git-ignored. `--augmentation` applies the ResNet study's JPEG/resize artifacts once to the fit images before embedding. `--model-name dinov2_vitb14` gives a faster backbone, and `--max-per-group N` gives a quick subset run whose results are tagged and left out of the comparison by default.
+
+#### Leave-one-generator-out (6 of 7 generators so far)
+
+`python scripts/dinov2_genimage_holdout.py --held-out all` repeats the same protocol with each generator held out in turn, and `python scripts/summarize_logo.py` averages the holdouts into `results/logo_summary.md`. Mean balanced accuracy over the six finished holdouts (BigGAN, VQDM, SD v1.5, Wukong, ADM, GLIDE; Midjourney is still pending), with the worst holdout in brackets:
+
+| Detector | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG 50 |
+|---|---:|---:|---:|---:|---:|---:|
+| RIGID (no training) | 77.5% [64.9] | 70.6% [57.2] | 71.8% [56.7] | 58.0% [49.5] | 50.1% [49.6] | 55.4% [47.4] |
+| Logistic regression, clean | 82.5% [69.8] | **76.9%** [68.2] | 79.8% [69.2] | 74.5% [67.8] | **64.6%** [60.6] | **72.5%** [64.3] |
+| Logistic regression, clean + diff | 84.4% [74.4] | 73.5% [63.5] | 80.0% [73.9] | 71.3% [66.9] | 59.6% [55.2] | 66.2% [59.2] |
+| MLP, clean + diff | **86.5%** [76.6] | 76.5% [64.2] | **82.8%** [76.0] | **75.1%** [70.8] | 62.4% [59.3] | 70.0% [63.6] |
+
+The MLP on clean + (noisy − clean) features has the best clean balanced accuracy on five of six holdouts and the best clean AUROC on all six. Under strong degradation (32 px, 128 px + JPEG) the probe on clean features alone degrades least, consistent with the noise-sensitivity signal relying on high-frequency detail. RIGID without training is strong on BigGAN and GLIDE but weak on the Stable Diffusion family and falls to chance at 32 px. ADM is the hardest held-out generator. Per-holdout tables with bootstrap intervals are in `results/comparison_holdout_<generator>.md`, and per-class recall, error overlap, and failure montages in `results/analysis_holdout_<generator>.md` and `reports/figures/<generator>_*.png`. ResNet has so far been run only with GLIDE held out.
+
+GenImage has a format confound: in every generator folder the real photos are high-quality JPEGs (luminance DC quantization step 1) at varied sizes, while the generated images are PNGs at one fixed size per generator. The recall tables show detectors exploiting it. JPEG-compressing generated test images makes them look real to the ResNet and to the clean + diff probes, and downsampling real photos makes them look generated.
+
+If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
+
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
 
 ## Repository map
 
 - `scripts/train_resnet_generalization.py` — training, validation, calibration, held-out evaluation, and score export.
 - `scripts/make_report_assets.py` — sanitizes result paths and regenerates the plotted figures.
+- `scripts/dinov2_genimage_holdout.py` — frozen DINOv2 RIGID and probe detectors on the same generator holdout.
+- `scripts/compare_holdout_results.py` — side-by-side tables of all ResNet and DINOv2 runs for one holdout, with paired stratified bootstrap 95% intervals and differences against a reference run.
+- `scripts/failure_analysis.py` — format/resolution confound check, per-class recall, error overlap, score-shift histograms, and most-confident-mistake montages from saved test scores.
+- `scripts/summarize_logo.py` — leave-one-generator-out averages across every finished holdout.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.

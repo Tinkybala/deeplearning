@@ -17,3 +17,7 @@ test_images/
 model/ResNet/Frozen Resnet model/torch_hub/
 model/ResNet/Frozen Resnet model/checkpoints/
 model/DINOv2/Frozen DINO model/torch_hub/
+
+# Frozen-DINOv2 GenImage holdout: cached embeddings and fitted probes are large and reproducible
+results/dinov2_embeddings/
+model/DINOv2/Frozen DINO model/checkpoints/
