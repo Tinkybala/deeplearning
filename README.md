@@ -144,6 +144,23 @@ The MLP on clean + (noisy − clean) features has the best clean balanced accura
 
 GenImage has a format confound: in every generator folder the real photos are high-quality JPEGs (luminance DC quantization step 1) at varied sizes, while the generated images are PNGs at one fixed size per generator. The recall tables show detectors exploiting it. JPEG-compressing generated test images makes them look real to the ResNet and to the clean + diff probes, and downsampling real photos makes them look generated.
 
+#### Follow-up experiments on cached embeddings
+
+`python scripts/cached_probe_experiments.py e3|e4` reruns the probes on the cached embeddings only (no backbone pass); full tables are in `results/e3_family_holdout.md` and `results/e4_probe_routing.md`. Both reproduce the leave-one-generator-out numbers above exactly before changing anything.
+
+**E3: leave-one-family-out.** SD v1.5 and Wukong are both Stable Diffusion models, so holding out one still trains on its sibling. Removing both from training lowers clean balanced accuracy on the held-out SD generator by 2.9–5.8 pp for every probe (all significant; MLP: SD v1.5 85.6% → 82.5%, Wukong 86.5% → 82.1%). A size control that removes one non-SD generator instead changes almost nothing (MLP 85.2% and 86.3%), so the drop comes from the missing sibling, not from training on one generator fewer. Training-free RIGID is unchanged, confirming the test set is identical. Leave-one-generator-out therefore overstates generalisation to a genuinely new model family by about 3–6 pp.
+
+**E4: degradation-aware routing.** The clean+diff MLP is best on clean images and the clean-only logistic regression under strong degradation. A router picks, per degradation type, the MLP, the logistic regression, or their logit average, and its threshold, by balanced accuracy on the six *seen* generators' validation images degraded the same way. Mean over the 7 holdouts:
+
+| Method | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG 50 | Mean |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MLP, clean + diff | **85.3%** | 74.7% | 81.5% | 74.1% | 61.6% | 68.1% | 74.2% |
+| Logistic regression, clean | 80.5% | 74.8% | 77.9% | 73.1% | 63.8% | 70.1% | 73.4% |
+| Logit average of both | 83.5% | 76.5% | 80.3% | 74.0% | 63.8% | 70.7% | 74.8% |
+| Router | 85.1% | **76.3%** | **82.0%** | **74.8%** | **64.6%** | **71.1%** | **75.7%** |
+
+The router matches the MLP on clean images (−0.2 pp, not significant) and beats it under JPEG (+1.5 pp), 32 px (+3.1 pp), and 128 px + JPEG (+3.1 pp), all significant in a paired bootstrap; it beats the clean-only probe in every condition. Under strong degradation it chooses the logit average rather than switching to the clean-only probe, so the two probes carry complementary information. Re-picking only the threshold helps mainly under JPEG (+2.5 pp for the MLP) and little elsewhere, so the remaining degradation gap is in the features, not in the decision threshold. The router needs the degradation type at test time (image size and JPEG quality are readable from the file) but never sees the held-out generator.
+
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
@@ -156,6 +173,7 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/compare_holdout_results.py` — side-by-side tables of all ResNet and DINOv2 runs for one holdout, with paired stratified bootstrap 95% intervals and differences against a reference run.
 - `scripts/failure_analysis.py` — format/resolution confound check, per-class recall, error overlap, score-shift histograms, and most-confident-mistake montages from saved test scores.
 - `scripts/summarize_logo.py` — leave-one-generator-out averages across every finished holdout.
+- `scripts/cached_probe_experiments.py` — leave-one-family-out (E3) and degradation-aware probe routing (E4) on cached embeddings.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.
