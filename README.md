@@ -146,7 +146,7 @@ GenImage has a format confound: in every generator folder the real photos are hi
 
 #### Follow-up experiments on cached embeddings
 
-`python scripts/cached_probe_experiments.py e3|e4|a1|a4` reruns the probes on the cached embeddings only (no backbone pass); full tables are in `results/e3_family_holdout.md`, `results/e4_probe_routing.md`, `results/a1_family_holdout.md` and `results/a4_seed_robustness.md`. All reproduce the leave-one-generator-out numbers above exactly before changing anything.
+`python scripts/cached_probe_experiments.py e3|e4|a1|a3|a4` reruns the probes on the cached embeddings only (no backbone pass); full tables are in `results/e3_family_holdout.md`, `results/e4_probe_routing.md`, `results/a1_family_holdout.md`, `results/a3_predicted_degradation_router.md` and `results/a4_seed_robustness.md`. All reproduce the leave-one-generator-out numbers above exactly before changing anything.
 
 **E3: leave-one-family-out.** SD v1.5 and Wukong are both Stable Diffusion models, so holding out one still trains on its sibling. Removing both from training lowers clean balanced accuracy on the held-out SD generator by 2.9–5.8 pp for every probe (all significant; MLP: SD v1.5 85.6% → 82.5%, Wukong 86.5% → 82.1%). A size control that removes one non-SD generator instead changes almost nothing (MLP 85.2% and 86.3%), so the drop comes from the missing sibling, not from training on one generator fewer. Training-free RIGID is unchanged, confirming the test set is identical. Leave-one-generator-out therefore overstates generalisation to a genuinely new model family by about 3–6 pp.
 
@@ -160,6 +160,15 @@ GenImage has a format confound: in every generator folder the real photos are hi
 | Router | 85.1% | **76.3%** | **82.0%** | **74.8%** | **64.6%** | **71.1%** | **75.7%** |
 
 The router matches the MLP on clean images (−0.2 pp, not significant) and beats it under JPEG (+1.5 pp), 32 px (+3.1 pp), and 128 px + JPEG (+3.1 pp), all significant in a paired bootstrap; it beats the clean-only probe in every condition. Under strong degradation it chooses the logit average rather than switching to the clean-only probe, so the two probes carry complementary information. Re-picking only the threshold helps mainly under JPEG (+2.5 pp for the MLP) and little elsewhere, so the remaining degradation gap is in the features, not in the decision threshold. The router needs the degradation type at test time (image size and JPEG quality are readable from the file) but never sees the held-out generator.
+
+**A3: router with a predicted degradation type** (`a3`, `results/a3_predicted_degradation_router.md`). This removes E4's one assumption. A multinomial logistic regression on the same DINOv2 features predicts each test image's degradation type. It is trained on the seen generators' degraded validation images, the same images the router already uses. Each image is then scored with the probe and threshold the router picked for the *predicted* type.
+- The classifier is 83% accurate on the held-out generators. Its errors are mostly between neighbouring conditions (clean ↔ resize 128 ↔ JPEG), and the router picks nearly the same probe for those.
+- Mean balanced accuracy is 75.4%, versus 75.7% with the true type and 74.2% for the MLP alone.
+- The predicted-type router keeps the significant gains over the MLP at 32 px (+3.2 pp) and 128 px + JPEG (+2.6 pp), and a smaller one at JPEG Q50 (+0.9 pp, compared with +1.5 pp when the type is given).
+- On clean images it is within 0.3 pp of the MLP, which is not significant.
+- It beats the clean-only logistic regression in every condition; the JPEG Q50 and 128 px + JPEG gains are not significant.
+
+The routing needs nothing but the image.
 
 **A1: leave-one-family-out for every family** (`a1`, `results/a1_family_holdout.md`). This extends E3 to all five families: GAN (BigGAN), VQ diffusion (VQDM), latent diffusion (SD v1.5, Wukong), OpenAI pixel-space diffusion (ADM, GLIDE), and Midjourney. For each generator, its whole family is removed from training. For a single-generator family this is just the leave-one-generator-out run. The family-level 7-generator means below are the more honest headline numbers:
 

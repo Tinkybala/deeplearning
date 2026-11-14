@@ -38,11 +38,17 @@ A4  MLP training-seed robustness
     split only), together with the E4 fusion and router built on it, to check that the 1-5 pp
     differences we report exceed seed noise.
 
+A3  router with a predicted degradation type
+    E4's router, but each test image's degradation type is predicted by a logistic
+    regression on its DINOv2 features (trained on the seen generators' degraded images)
+    instead of being given, which removes E4's metadata assumption.
+
 All experiments refuse to embed anything: a missing cache file is an error.
 
     python scripts/cached_probe_experiments.py e3
     python scripts/cached_probe_experiments.py e4
     python scripts/cached_probe_experiments.py a1
+    python scripts/cached_probe_experiments.py a3
     python scripts/cached_probe_experiments.py a4 --seeds 42 1 2 3 4
 """
 
@@ -468,6 +474,98 @@ def run_a4(args, store) -> None:
     write_report("a4_seed_robustness", lines, {f"{s}|{g}|{m}|{c}": v for (s, g, m, c), v in res.items()})
 
 
+def margin(method: str, s: np.ndarray, t: float) -> np.ndarray:
+    """Signed distance to the threshold in logit units, so different scores can be mixed."""
+    return s - t if method == "fusion" else logit(s) - logit(np.asarray(t))
+
+
+def run_a3(args, store) -> None:
+    """E4's router with the degradation type predicted from the image instead of given."""
+    conds = dh.CONDITIONS
+    rng = np.random.default_rng(args.boot_seed)
+    results, boots, confusion, picks = {}, {}, {}, {}
+    methods = ["mlp_clean+diff", "logreg_clean", "fusion", "router (given type)", "router (predicted type)"]
+    for g in GENERATORS:
+        t0 = time.time()
+        fit, val, dval, tests = holdout_data(args, store, g)
+        probes = {d: dh.fit_detector(d, fit, args, g)[0] for d in ("mlp_clean+diff", "logreg_clean")}
+        plans, chosen = route(probes, val, dval, tests)
+
+        # degradation classifier on the seen generators' degraded images (real and generated)
+        Xd = np.vstack([dh.build_features(dval[c]["clean"], dval[c]["noisy"], args.deg_features) for c in conds])
+        yd = np.concatenate([np.full(len(dval[c]["label"]), i) for i, c in enumerate(conds)])
+        scaler = dh.StandardScaler().fit(Xd)
+        clf = dh.LogisticRegression(C=args.deg_C, max_iter=3000).fit(scaler.transform(Xd), yd)
+
+        for i, c in enumerate(conds):
+            yt = tests[c]["label"].astype(int)
+            pred = clf.predict(scaler.transform(dh.build_features(tests[c]["clean"], tests[c]["noisy"], args.deg_features)))
+            confusion[(g, c)] = np.bincount(pred, minlength=len(conds)) / len(pred)
+            # per image: the method and threshold the router uses for the predicted condition
+            m = np.empty(len(yt))
+            for j, cj in enumerate(conds):
+                rows = pred == j
+                method = chosen[cj]
+                thr = plans[cj][f"{method} +recal"][1]
+                m[rows] = margin(method, plans[c][method][0][rows], thr)
+            plan = {k: plans[c][k] for k in methods[:3]} | {"router (given type)": plans[c]["router"],
+                                                            "router (predicted type)": (m, 0.0)}
+            boot = Boot(yt, args.bootstrap, rng)
+            for k in methods:
+                s, t = plan[k]
+                results[(g, k, c)] = metrics(yt, s, t)
+                boots[(g, k, c)] = boot(s, t)
+            picks[(g, c)] = chosen[c]
+        acc = np.mean([confusion[(g, c)][i] for i, c in enumerate(conds)])
+        print(f"A3 {SHORT[g]:10s} degradation-classifier accuracy {acc:.3f}  router(pred) BA "
+              + " ".join(f"{results[(g, 'router (predicted type)', c)]['balanced_accuracy']:.3f}" for c in conds)
+              + f"  ({time.time() - t0:.0f}s)", flush=True)
+
+    gens = GENERATORS
+    lines = ["# A3: router with a predicted degradation type",
+             "E4's router needs the degradation type of each test image. Here a multinomial logistic regression "
+             f"(features {args.deg_features}, C={args.deg_C}) predicts it from the frozen DINOv2 embedding. It is "
+             "trained on the six seen generators' validation images (real and generated) under the six conditions, "
+             "the same images the router already uses to pick its score and threshold, so the held-out generator is "
+             "still never seen. Each test image is then scored with the probe and threshold the router chose for "
+             "its *predicted* condition. The per-image decision is the signed logit distance to that threshold, which "
+             "also serves as the AUROC score. Mean over the 7 held-out generators (worst generator in brackets)."]
+    rows = ["| Method | " + " | ".join(COND_LABEL[c] for c in conds) + " | Mean |", "|---|" + "---:|" * (len(conds) + 1)]
+    for k in methods:
+        cells = [f"{np.mean([results[(g, k, c)]['balanced_accuracy'] for g in gens]):.1%} "
+                 f"[{min(results[(g, k, c)]['balanced_accuracy'] for g in gens):.1%}]".replace("%]", "]") for c in conds]
+        overall = np.mean([results[(g, k, c)]["balanced_accuracy"] for g in gens for c in conds])
+        rows.append(f"| {k} | " + " | ".join(cells) + f" | {overall:.1%} |")
+    lines += ["## Balanced accuracy", "\n".join(rows)]
+
+    rows = ["| Comparison | " + " | ".join(COND_LABEL[c] for c in conds) + " |", "|---|" + "---:|" * len(conds)]
+    for a, b in [("router (predicted type)", "mlp_clean+diff"), ("router (predicted type)", "logreg_clean"),
+                 ("router (predicted type)", "router (given type)")]:
+        cells = []
+        for c in conds:
+            point = np.mean([results[(g, a, c)]["balanced_accuracy"] - results[(g, b, c)]["balanced_accuracy"] for g in gens])
+            rep = np.mean([boots[(g, a, c)]["balanced_accuracy"] - boots[(g, b, c)]["balanced_accuracy"] for g in gens], axis=0)
+            cells.append(fmt_diff(point, rep, 100, 1))
+        rows.append(f"| {a} − {b} | " + " | ".join(cells) + " |")
+    lines += [f"## Balanced-accuracy differences (pp), 7-generator mean, paired bootstrap ({args.bootstrap} replicates "
+              "per holdout); * = 95% interval excludes 0", "\n".join(rows)]
+
+    rows = ["| True condition | " + " | ".join(f"→ {COND_LABEL[c]}" for c in conds) + " |", "|---|" + "---:|" * len(conds)]
+    for c in conds:
+        mean = np.mean([confusion[(g, c)] for g in gens], axis=0)
+        rows.append(f"| {COND_LABEL[c]} | " + " | ".join(f"**{v:.0%}**" if j == conds.index(c) else f"{v:.0%}"
+                                                         for j, v in enumerate(mean)) + " |")
+    acc = np.mean([confusion[(g, c)][i] for g in gens for i, c in enumerate(conds)])
+    lines += [f"## Degradation-classifier confusion on the held-out generators' test images (7-generator mean; "
+              f"overall accuracy {acc:.1%})", "\n".join(rows)]
+    names = {"mlp_clean+diff": "MLP", "logreg_clean": "LR", "fusion": "fusion"}
+    lines += ["Router choice per condition (from degraded seen-generator validation): "
+              + ", ".join(f"{COND_LABEL[c]}: " + "/".join(sorted({names[picks[(g, c)]] for g in gens})) for c in conds) + "."]
+    write_report("a3_predicted_degradation_router", lines,
+                 {f"{g}|{k}|{c}": v for (g, k, c), v in results.items()}
+                 | {f"confusion|{g}|{c}": v.tolist() for (g, c), v in confusion.items()})
+
+
 # --------------------------------------------------------------------------- main
 
 def write_report(name: str, lines: list[str], data: dict) -> None:
@@ -489,14 +587,16 @@ def set_defaults(args) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("experiment", choices=["e3", "e4", "a1", "a4"])
+    parser.add_argument("experiment", choices=["e3", "e4", "a1", "a3", "a4"])
+    parser.add_argument("--deg-features", default="clean+diff", help="a3: degradation-classifier features")
+    parser.add_argument("--deg-C", type=float, default=0.1, help="a3: degradation-classifier inverse L2 strength")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 1, 2, 3, 4], help="a4: MLP training seeds")
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--boot-seed", type=int, default=0)
     args = parser.parse_args()
     set_defaults(args)
     store = make_store(args)
-    {"e3": run_e3, "e4": run_e4, "a1": run_a1, "a4": run_a4}[args.experiment](args, store)
+    {"e3": run_e3, "e4": run_e4, "a1": run_a1, "a3": run_a3, "a4": run_a4}[args.experiment](args, store)
 
 
 if __name__ == "__main__":
