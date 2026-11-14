@@ -146,7 +146,7 @@ GenImage has a format confound: in every generator folder the real photos are hi
 
 #### Follow-up experiments on cached embeddings
 
-`python scripts/cached_probe_experiments.py e3|e4` reruns the probes on the cached embeddings only (no backbone pass); full tables are in `results/e3_family_holdout.md` and `results/e4_probe_routing.md`. Both reproduce the leave-one-generator-out numbers above exactly before changing anything.
+`python scripts/cached_probe_experiments.py e3|e4|a1|a4` reruns the probes on the cached embeddings only (no backbone pass); full tables are in `results/e3_family_holdout.md`, `results/e4_probe_routing.md`, `results/a1_family_holdout.md` and `results/a4_seed_robustness.md`. All reproduce the leave-one-generator-out numbers above exactly before changing anything.
 
 **E3: leave-one-family-out.** SD v1.5 and Wukong are both Stable Diffusion models, so holding out one still trains on its sibling. Removing both from training lowers clean balanced accuracy on the held-out SD generator by 2.9–5.8 pp for every probe (all significant; MLP: SD v1.5 85.6% → 82.5%, Wukong 86.5% → 82.1%). A size control that removes one non-SD generator instead changes almost nothing (MLP 85.2% and 86.3%), so the drop comes from the missing sibling, not from training on one generator fewer. Training-free RIGID is unchanged, confirming the test set is identical. Leave-one-generator-out therefore overstates generalisation to a genuinely new model family by about 3–6 pp.
 
@@ -161,6 +161,45 @@ GenImage has a format confound: in every generator folder the real photos are hi
 
 The router matches the MLP on clean images (−0.2 pp, not significant) and beats it under JPEG (+1.5 pp), 32 px (+3.1 pp), and 128 px + JPEG (+3.1 pp), all significant in a paired bootstrap; it beats the clean-only probe in every condition. Under strong degradation it chooses the logit average rather than switching to the clean-only probe, so the two probes carry complementary information. Re-picking only the threshold helps mainly under JPEG (+2.5 pp for the MLP) and little elsewhere, so the remaining degradation gap is in the features, not in the decision threshold. The router needs the degradation type at test time (image size and JPEG quality are readable from the file) but never sees the held-out generator.
 
+**A1: leave-one-family-out for every family** (`a1`, `results/a1_family_holdout.md`). This extends E3 to all five families: GAN (BigGAN), VQ diffusion (VQDM), latent diffusion (SD v1.5, Wukong), OpenAI pixel-space diffusion (ADM, GLIDE), and Midjourney. For each generator, its whole family is removed from training. For a single-generator family this is just the leave-one-generator-out run. The family-level 7-generator means below are the more honest headline numbers:
+
+| Detector | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG 50 |
+|---|---:|---:|---:|---:|---:|---:|
+| Logistic regression, clean | 79.3% (−1.2*) | 73.1% (−1.8*) | 77.2% (−0.7*) | 72.4% (−0.7*) | 63.3% (−0.5) | 68.5% (−1.6*) |
+| Logistic regression, clean + diff | 81.2% (−1.8*) | 68.3% (−3.2*) | 77.6% (−1.0*) | 70.2% (+0.0) | 58.5% (−0.2) | 62.6% (−1.8*) |
+| MLP, clean + diff | **84.2%** (−1.1*) | 72.2% (−2.5*) | 80.3% (−1.3*) | 73.0% (−1.1*) | 60.9% (−0.7*) | 66.8% (−1.3*) |
+
+Brackets show the change from leave-one-generator-out (* = paired-bootstrap 95% interval excludes 0). The probe ranking is unchanged. ADM and GLIDE behave differently from the Stable Diffusion pair. Removing GLIDE costs the MLP only 1.3 pp on ADM, which is not significant, and the size control explains it entirely (B − C = +0.5 pp). Removing ADM does not hurt GLIDE at all (+1.0 pp). Shared lineage therefore does not guarantee shared artifacts: the two latent-diffusion models are near-duplicates in DINOv2 feature space, while the two OpenAI pixel-diffusion models are not.
+
+**A4: training-seed robustness** (`a4`, `results/a4_seed_robustness.md`). The MLP was refit with five seeds (42, 1, 2, 3, 4). The seed changes only the initialisation and the early-stopping split. The standard deviation of the 7-generator mean balanced accuracy over seeds is 0.2–0.4 pp, except 0.9 pp at JPEG Q50; on single generators it is 0.3–1.3 pp. These differences keep their sign on all five seeds:
+- MLP − clean-only logistic regression on clean images: +4.7 ± 0.2 pp.
+- MLP − clean + diff logistic regression: +2.2 to +3.7 pp in every condition.
+- Router − MLP: +2.2 (JPEG), +1.2 (64 px), +2.9 (32 px) and +3.1 pp (128 + JPEG).
+- Router − clean-only logistic regression in every condition.
+
+Two comparisons are within seed noise: MLP vs. clean-only logistic regression at JPEG Q50 (−0.3 ± 0.9 pp, sign agrees on 3 of 5 seeds), and router vs. MLP on clean images (−0.0 ± 0.2 pp).
+
+#### Format-confound experiments (new embeddings)
+
+`python scripts/format_alignment_experiments.py b1|b2` adds two test conditions that put **both** classes through the same format pipeline:
+- **Format q96:** JPEG quality 96 with 4:4:4 chroma at native size. This is the setting of almost all real photos in tiny-GenImage.
+- **Format 256+q96:** resize the shorter side to 256, then JPEG q96, so neither compression nor size separates the classes.
+
+Real photos are thereby JPEG-compressed twice and generated images once. Full tables are in `results/e1_format_matched_test.md` and `results/e2_format_aligned_training.md`. The first embedding run takes about 80 minutes on an M-series Mac and adds about 32,000 cached embeddings. The clean results reproduce the main runs exactly.
+
+**E1: format-matched test set.** With the main runs' probes and thresholds, matching the format lowers the MLP's 7-generator mean balanced accuracy from 85.3% to 83.3% (q96) and to 82.5% (256+q96). Both drops are significant, as are those of every other detector. Mean AUROC falls only from 0.927 to 0.916. Real recall rises from 87% to 93% and generated recall falls from 83% to 72%. So once generated images are JPEG-compressed like real photos they look more real, which is the "compressed means real" shortcut. Most of the clean accuracy survives, but the effect depends on the generator. BigGAN, VQDM, ADM and GLIDE are essentially unaffected (−2.4 to +1.7 pp). The large-image generators lose the most: SD v1.5 85.6% → 81.0%, Wukong 86.5% → 80.9%, Midjourney 78.1% → 68.6%. Their AUROC also drops (Midjourney 0.879 → 0.823), so this is lost ranking, not only a threshold shift.
+
+**E2: format-aligned training.** Refitting the probes on seen-generator images whose real and generated images both went through Format 256+q96 removes that dependence. Mean over the 7 holdouts:
+
+| MLP, clean + diff | Clean (raw files) | JPEG Q50 | Resize 32 | Format 256+q96 | SD v1.5 / Wukong / Midjourney at 256+q96 |
+|---|---:|---:|---:|---:|---:|
+| Clean-trained (main runs) | **85.3%** | 74.7% | 61.6% | 82.5% | 81.0% / 80.9% / 68.6% |
+| Format-aligned training | 83.6% (−1.7*) | 74.5% (−0.2) | 61.0% (−0.6) | **84.8%** (+2.3*) | 83.6% / 85.2% / 75.6% |
+
+On the format-matched test set, aligned training recovers most of the loss: +2.3 pp for the MLP and +4.2 pp for the clean + diff logistic regression, with gains of 2.6–7.0 pp on the large-image generators. Its accuracy is about the same on raw and format-matched files (83.6% vs. 84.8%). On the raw test files it is 1.7 pp worse on clean images and 1.3–1.6 pp worse at 128 px, 64 px and 128 px + JPEG, though no worse under JPEG Q50 or 32 px.
+
+Taken together, about 2–3 pp of the clean-trained probe's mean accuracy, and up to 10 pp for Midjourney, depends on the PNG-versus-JPEG format difference. A format-independent estimate of how well frozen DINOv2 generalises to unseen generators is about 84–85% mean balanced accuracy. Aligned training does not improve robustness to the six standard degradations; it trades about 1.7 pp on raw benchmark files for a detector whose accuracy does not depend on the file format. RIGID has nothing to retrain, and its threshold chosen on aligned images transfers worse to raw files (−2.7 pp clean).
+
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
@@ -173,7 +212,8 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/compare_holdout_results.py` — side-by-side tables of all ResNet and DINOv2 runs for one holdout, with paired stratified bootstrap 95% intervals and differences against a reference run.
 - `scripts/failure_analysis.py` — format/resolution confound check, per-class recall, error overlap, score-shift histograms, and most-confident-mistake montages from saved test scores.
 - `scripts/summarize_logo.py` — leave-one-generator-out averages across every finished holdout.
-- `scripts/cached_probe_experiments.py` — leave-one-family-out (E3) and degradation-aware probe routing (E4) on cached embeddings.
+- `scripts/cached_probe_experiments.py` — leave-one-family-out (E3, A1), degradation-aware probe routing (E4) and MLP seed robustness (A4) on cached embeddings.
+- `scripts/format_alignment_experiments.py` — format-matched test set (E1) and format-aligned training (E2); embeds the new format conditions.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.
