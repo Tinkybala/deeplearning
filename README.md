@@ -365,7 +365,44 @@ Averaged over folds, those two tie for the best single robust probe (75.8% vs 75
 
 The nested router does fix the old router's weak spot, clean ADM: 77.4% vs 67.1%, where the old router had picked a block-12 probe. Midjourney rises as well, from 75.0% to 80.3%, but VQDM falls from 88.5% to 79.1%.
 
-**Recommended final detector.** The DINOv2 block-20 MLP with the label-free mixture threshold: **80.2%** mean over the six standard conditions and 90.0% clean. It needs neither the degradation type nor labelled degraded data, and nested selection backs both the layer and its use with an adapted threshold. If test images arrive one at a time rather than in batches, use the router instead (79.2%), which needs the degradation type or the A3 classifier.
+Nested selection thus backs block 20, both as a single detector and with an adapted threshold. The final detector section below combines it with augmented training.
+
+#### Final detector: block 20, augmented training, batch and single-image thresholds
+
+`python scripts/augmented_backbone_features.py` recomputes the block-20 (and other block) features of exactly the augmented training images used above. It runs about 30 min, reuses the same files, seeds and DataLoader worker streams, and checks that the block-24 output matches the cached augmented embeddings in every folder.
+
+`python scripts/final_detector_experiments.py` then fits block-20 probes on clean, augmented (*both*) and clean + augmented images. It writes `results/final_detector.md`, comparing these threshold rules:
+
+- **clean val** and **degraded val**, as before.
+- The label-free **test GMM**, which needs a batch of test images.
+- **metadata A / B**, which work on single images. An image gets the threshold of its bucket, learned on the degraded seen-generator validation images in the same bucket.
+  - A buckets by the received file's shorter side (< 48, < 96 px, or full size) and by whether it is a JPEG of quality ≤ 75.
+  - B buckets by size only.
+- Routers that choose the probe per condition or per metadata bucket.
+
+Mean balanced accuracy over the 7 holdouts:
+
+| Detector, threshold | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG | Format 256+q96 | Mean (6 std.) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Main runs' MLP, clean val | 85.3% | 74.7% | 81.5% | 74.1% | 61.6% | 68.1% | 82.5% | 74.2% |
+| Block-20 MLP (clean), clean val | 88.6% | 74.7% | 85.8% | 78.5% | 66.4% | 66.3% | 83.4% | 76.7% |
+| Block-20 MLP (clean), test GMM | 90.0% | 84.0% | 86.7% | 78.9% | 66.3% | 75.1% | 88.4% | 80.2% |
+| **Block-20 MLP (clean + augmented), clean val** | 88.7% | 83.2% | 86.7% | 80.7% | 72.3% | 76.4% | 85.5% | **81.3%** |
+| Block-20 MLP (clean + augmented), metadata B | 89.4% | 83.8% | 87.1% | 80.5% | 72.4% | 77.1% | 86.3% | 81.7% |
+| **Block-20 MLP (clean + augmented), test GMM** | **90.5%** | **86.2%** | **88.1%** | **81.6%** | **72.8%** | **78.0%** | **89.0%** | **82.9%** |
+| Condition router (all probes, condition known) | 87.3% | 84.8% | 87.1% | 79.3% | 71.9% | 76.8% | 83.4% | 81.2% |
+
+**Augmentation pays off on block 20.** On the final layer, clean + augmented training gained 1.7 pp. On block 20 it gains **+4.6 pp** on average with no clean cost (+0.1 pp): +8.5 pp at JPEG Q50, +5.9 pp at 32 px and +10.0 pp at 128 + JPEG, all significant. Block 20 still carries the degradation-sensitive detail that the probe can learn to read under JPEG and resizing; the final layer has largely discarded it.
+
+**Augmented training also removes most of the threshold drift.** The fixed clean-val threshold is within 2.1 pp of the oracle (81.3% vs 83.4%), against 4.1 pp before augmentation. So the single-image metadata thresholds add only about 0.3 pp, and the routers (81.2–81.5%) are no better than the single detector.
+
+The metadata buckets are almost class-neutral. The exceptions are 133 low-quality real JPEGs and 10 small real photos among 7,000 clean test images. Version A, which uses JPEG quality, is no better than B, so the detector does not profit from that leak.
+
+**Final detector.** The DINOv2 block-20 MLP fit on clean + augmented training images, with one threshold from clean seen-generator validation.
+
+- It works on single images, needs neither the degradation type nor any metadata, and averages **81.3%** over the six standard conditions (main runs' MLP 74.2%, fine-tuned ResNet-18 60.8%). It reaches 88.7% on clean images and 85.5% on the format-matched set.
+- When images arrive in batches that share one degradation, the label-free mixture threshold adds 1.6 pp, for **82.9%** mean and 90.5% clean. It stays at 81.6–81.7% on batches that are 20% or 80% real.
+- The choice of *clean + augmented* over *augmented only* (80.9%) was made on these test results, but the two differ by only 0.4 pp.
 
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
@@ -388,6 +425,9 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/augmented_probe_experiments.py` — DINOv2 probes fit on JPEG/resize-augmented embeddings, all 7 holdouts.
 - `scripts/threshold_adaptation_experiments.py` — clean, degraded-val, label-free (median, GMM) and oracle thresholds.
 - `scripts/nested_selection_experiments.py` — nested leave-one-generator-out choice of layer, probe and router.
+- `scripts/augmented_backbone_features.py` — block-wise DINOv2 features of the augmented training images (reproduces the cached augmentation exactly).
+- `scripts/final_detector_experiments.py` — the final detector: block-20 probes on augmented images with batch and single-image (metadata) thresholds.
+- `EXPERIMENT_STORY.md` — how all experiments on the three branches fit together.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.

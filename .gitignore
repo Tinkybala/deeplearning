@@ -26,3 +26,4 @@ model/DINOv2/Frozen DINO model/checkpoints/
 # Originals left behind after moving the venv, DINOv2 hub cache and embeddings out of iCloud
 *-icloud-old/
 results/_nested_selection_state.pkl
+results/_final_detector_state.pkl
