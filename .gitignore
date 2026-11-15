@@ -28,3 +28,4 @@ model/DINOv2/Frozen DINO model/checkpoints/
 results/_nested_selection_state.pkl
 results/_final_detector_state.pkl
 results/_augmented_layer_selection_state.pkl
+results/_clip_layer_experiments_state.pkl

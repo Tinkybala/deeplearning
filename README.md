@@ -424,6 +424,78 @@ The metadata buckets are almost class-neutral. The exceptions are 133 low-qualit
 
 The block-20 MLP stays the exported detector: it uses a single block and was chosen before this test. The 12–24 concatenation is an equally valid alternative, about 1 pp better after the fact.
 
+#### Intermediate CLIP blocks, and CLIP + DINOv2
+
+The earlier backbone comparison used only CLIP's final embedding. These experiments ask whether CLIP's intermediate blocks behave like DINOv2's, and whether CLIP adds anything to the final detector.
+
+`python scripts/clip_layer_features.py` (about 3.5 h) stores the CLS token after OpenAI CLIP ViT-L/14 blocks 8, 12, 16, 20 and 24 for:
+- the clean training images;
+- the same augmented training images, reproduced exactly;
+- every test condition.
+
+`python scripts/clip_layer_experiments.py` (about 65 min) then compares 24 candidates by nested leave-one-generator-out selection and writes `results/clip_layer_experiments.md`:
+- CLIP blocks with LR and MLP probes, trained clean or clean + augmented;
+- DINOv2 block 20 concatenated with a CLIP block;
+- *fusion*: the mean of the final detector's and a CLIP MLP's logits, each standardised on clean seen-val.
+
+Mean balanced accuracy over the 7 holdouts:
+
+| Detector | Inner score | Clean | JPEG Q50 | Resize 32 | 128 + JPEG | **Format 256+q96** | Mean (6 std.) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **Final detector (DINOv2 block 20 MLP, clean + aug.)** | 80.6% | 88.7% | 83.2% | 72.3% | 76.4% | **85.5%** | 81.3% |
+| Fusion with CLIP block 16 (nested pick, 5 of 7 folds) | **81.7%** | **93.0%** | 81.6% | 72.4% | 76.4% | 79.6% | 82.5% |
+| Fusion with CLIP block 24 | 80.5% | 91.2% | **85.8%** | 72.5% | **77.2%** | **86.3%** | **82.6%** |
+| DINOv2 blocks 12–24 LR, clean + aug. | 81.3% | 89.3% | 83.8% | **73.8%** | 76.7% | 86.1% | 82.2% |
+| CLIP block 16 MLP, clean + aug. | 73.4% | 92.1% | 70.2% | 66.0% | 63.5% | 66.5% | 75.1% |
+| CLIP block 16 MLP, clean | 62.9% | 92.1% | 51.4% | 51.0% | 51.1% | 59.1% | 62.6% |
+| Nested pick (mean of 6 conditions) | | 91.3% | 82.6% | 71.9% | 75.8% | 82.6% | 81.8% |
+
+**CLIP's intermediate blocks are the strongest clean features found so far, but much of that is a format shortcut.** CLIP block 16 reaches 92.1% clean. On the format-matched test, where both classes are re-saved as JPEG q96 at 256 px, it falls to 59.1% (clean-trained) or 66.5% (augmented). The real photos are scored correctly; the generated images are not. Generated recall drops from 86% to 18% (clean-trained) or 34% (augmented), so the block reads JPEG compression as "real". Augmentation reduces this reliance but does not remove it. The final detector drops only 3.2 pp on the same test.
+
+**Fusion gains are small and depend on the block.**
+- Nested selection picks the fusion with CLIP block 16 in 5 of 7 folds, and the 12–24 concatenation in the other 2. It gains +0.5 pp over the final detector (significant), with +2.5 pp clean, but loses 3.0 pp on the format-matched test.
+- The fusion with CLIP block 16 alone: +1.2 pp mean, +4.3 pp clean and +9.2 pp on Midjourney, but −6.0 pp on the format-matched test.
+- The fusion with CLIP block 24 is the only CLIP combination that loses nothing on the format-matched test: +1.3 pp mean, +2.5 pp clean, +2.6 pp at JPEG Q50 and +0.8 pp format-matched. Inner selection ranks it below the final detector, so it was not picked.
+
+The nested score is the mean over the six standard conditions, and none of them separates the format cue from the generator cue, so it rewards the shortcut. The final detector stays the single-backbone DINOv2 block-20 MLP. When CLIP can be run as well, fusing with CLIP block 24 is a sound upgrade of about 1 pp, chosen after the fact.
+
+#### Native resolution: tiles instead of one downscaled crop
+
+Every detector above sees the image resized to shorter side 256 and centre-cropped to 224 px. That discards most of the pixels of large images: SD v1.5 and Wukong are 512 px, Midjourney 1024 px, and the real photos about 375 × 500.
+
+`python scripts/native_tile_features.py` (about 2.5 h) embeds three views of every image in one pass, using DINOv2 blocks 20 and 24:
+- **crop**: the main runs' downscaled view. It reproduces the cached features exactly.
+- **native centre**: the central 224 px at native resolution.
+- **tile mean**: the mean CLS token over up to four 224 px tiles at native resolution.
+
+Images smaller than 224 px (BigGAN's 128 px) are first upscaled. The images are the clean training images, plus the test images under clean, JPEG Q50 and Format q96. The resize conditions are left out, because after resizing to 256 px or less, tiling is just a centre crop.
+
+`python scripts/native_tile_experiments.py` (a few minutes) fits the main runs' MLP probe on each view, using clean training only, and writes `results/native_tile_experiments.md`. Block 20, mean over the 7 holdouts:
+
+| View | Clean | JPEG Q50 | Format q96 | AUROC clean / JPEG Q50 |
+|---|---:|---:|---:|---:|
+| Downscaled crop (main runs) | 88.6% | **74.7%** | 86.1% | 0.956 / 0.915 |
+| Native centre crop | 92.2% | 70.5% | 90.0% | 0.981 / 0.908 |
+| **Native tile mean** | **93.0%** | 72.1% | **91.1%** | **0.984** / 0.919 |
+| Tile mean − crop (pp) | +4.4* | −2.6* | +5.0* | |
+
+(* = paired bootstrap 95% interval excludes 0.)
+
+**Native resolution is the largest clean-image gain since the move to block 20, and it is not a format shortcut.** The tile mean gains +4.4 pp clean and +5.0 pp on the format-matched test, where both classes are JPEG q96 at native size. It is better on 6 of 7 holdouts:
+- ADM gains the most: 74.3% → 83.9% clean, and 67.6% → 78.6% format-matched.
+- Midjourney (1024 px) is the one loss: 81.8% → 78.6%. A 224 px tile covers only a twentieth of a Midjourney image.
+
+**Under JPEG Q50 the advantage turns into a threshold problem.** Block 20's balanced accuracy drops 2.6 pp, but its AUROC is unchanged (0.919 vs 0.915): generated recall falls to 45%, while real recall rises to 99%. JPEG destroys the fine detail the native views rely on, so the scores shift past the clean threshold. Block 24, which is coarser, gains under JPEG as well (+2.3 pp).
+
+**Caveat: a possible scale cue.** The native views keep each image's size, and in GenImage size differs by class:
+- Most real photos (about 80%) give 2 tiles.
+- BigGAN, VQDM, ADM and GLIDE images (128–256 px) give 1 tile. For them the native view is almost the same as the downscaled crop, while a real photo's native view shows its content at a different scale (zoomed in).
+- SD v1.5, Wukong and Midjourney images (512–1024 px) give 4 tiles.
+
+The probe could therefore learn "content at native photo scale = real". This would fit the largest gains being on ADM and VQDM. The format-matched test keeps native size, so it cannot rule this out. A size-matched test is needed before this gain is trusted: for example, resize every image to the same shorter side before tiling.
+
+**Next steps, not yet run:** first the size-matched test; then, if the gain survives, augmented training on native tiles. That should remove the JPEG drift, as augmentation did for block 20. This test used clean training only, so its numbers compare views, not against the augmented final detector.
+
 #### Exported final detector, for tests on other datasets
 
 `python scripts/export_final_detector.py` fits the final detector on all seven generators, using only cached features. It uses every generator's training fakes (14,000) and 3,200 distinct real photos from the BigGAN and VQDM folders, each clean and augmented. It saves the model to `models/final_detector_dinov2_l20_mlp.pt`: 1 MB, holding tensors and plain values only, so it is safe to load with `weights_only=True`.
@@ -468,6 +540,8 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/final_detector_experiments.py` — the final detector: block-20 probes on augmented images with batch and single-image (metadata) thresholds.
 - `scripts/export_final_detector.py`, `scripts/score_final_detector.py` — train and save the final detector on all seven generators; score any folders of real and generated images with it.
 - `scripts/augmented_layer_selection.py` — every DINOv2 layer probe with augmented training, chosen by nested leave-one-generator-out.
+- `scripts/clip_layer_features.py`, `scripts/clip_layer_experiments.py` — intermediate CLIP ViT-L/14 blocks (clean and augmented training images, all test conditions); CLIP probes and CLIP + DINOv2 fusion, chosen by nested leave-one-generator-out.
+- `scripts/native_tile_features.py`, `scripts/native_tile_experiments.py` — DINOv2 features at native resolution (centre crop and tile mean) compared with the downscaled crop.
 - `models/final_detector_dinov2_l20_mlp.pt` — the exported final detector (1 MB).
 - `EXPERIMENT_STORY.md` — how all experiments on the three branches fit together.
 - `REPORT.md` — detailed, ongoing experiment report.

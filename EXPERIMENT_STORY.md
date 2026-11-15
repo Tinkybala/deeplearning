@@ -23,7 +23,8 @@ This document links the experiments on all three branches into one argument: wha
 | 6. Robustness (S, T's idea) | Routing, augmentation, better features? | Routing +1.5 pp; augmentation +1.7 pp; block-20 features plus routing **79.2%**. | Which choices were real and which were luck? |
 | 7. Honest model selection (S) | Does seen-generator validation pick the right model? | No, it rewards overfitting. Nested leave-one-generator-out selection confirms block 20 and gives +2.3 pp clean. | Is what remains a feature problem or a threshold problem? |
 | 8. Thresholds (S) | How much is threshold drift? | For block 20, most of it. A label-free threshold gives **80.2%** without knowing the degradation. | The final detector. |
-| 9. Final detector (S) | Combine block 20 with augmented training; can single images match the batch threshold? | Augmentation works on block 20: +4.6 pp. One fixed threshold gives **81.3%** on single images; a batch threshold gives 82.9%. | Limits and next steps. |
+| 9. Final detector (S) | Combine block 20 with augmented training; can single images match the batch threshold? | Augmentation works on block 20: +4.6 pp. One fixed threshold gives **81.3%** on single images; a batch threshold gives 82.9%. | Can another backbone or more pixels beat it? |
+| 10. CLIP blocks and native resolution (S) | Do intermediate CLIP blocks or native-resolution tiles help? | CLIP block 16 is 92% clean but reads JPEG as "real" (59–67% format-matched); fusion adds about 1 pp. Native tiles give +4.4 pp clean and +5.0 pp format-matched, but drift under JPEG and may use a scale cue. | A size-matched test, then augmented training on native tiles. |
 
 (M = Michael, T = Tyrone, S = Seunghwan)
 
@@ -174,6 +175,26 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **Nested selection over all 32 augmented and clean layer probes agrees** (`results/augmented_layer_selection.md`). It picks the augmented block-12–24 concatenation or the augmented block-20 MLP, at 81.2% vs 81.3% (not significant). Augmentation also removes the early blocks' fragility: the concatenation goes from 70.2% to 82.2%.
 - **Final detector:** the augmented block-20 MLP with one fixed threshold. It works on single images, needs neither the degradation type nor metadata, and averages 81.3%. That is +7.1 pp over the main runs' detector and +20.5 pp over the fine-tuned ResNet. With batches of images that share one degradation, the label-free threshold adds 1.6 pp.
 
+## 10. Can a second backbone or native resolution beat it? (Seunghwan)
+
+**Rationale.** Two open questions remained:
+- Intermediate DINOv2 blocks beat its final layer. Is the same true of CLIP, the backbone of UnivFD?
+- Every model so far sees images shrunk to 224 px. Does keeping the native pixels help?
+
+**CLIP's intermediate blocks** (`results/clip_layer_experiments.md`, 24 candidates, nested selection):
+- **The best clean accuracy so far, but largely a format shortcut.** CLIP block 16 reaches 92.1% clean. When both classes are re-saved as JPEG q96 at 256 px, it falls to 59–67%, because it reads JPEG compression as "real": generated recall goes from 86% to 18–34%. The final detector loses 3.2 pp on the same test.
+- **Fusion with the final detector adds about 1 pp.** Nested selection picks the fusion with CLIP block 16 in 5 of 7 folds: +0.5 pp mean (significant), +2.5 pp clean, but −3.0 pp format-matched. The fusion with CLIP block 24 is the honest one: +1.3 pp mean with no format loss. The nested score cannot tell the two apart, because none of the six standard conditions removes the PNG/JPEG difference.
+- **Lesson.** A detector chosen on clean or on the standard degradations can still be choosing a shortcut. The format-matched test from section 5 is a necessary check for every new backbone.
+
+**Native resolution** (`results/native_tile_experiments.md`; DINOv2 block 20, clean training):
+- **Averaging DINOv2 over up to four native-resolution 224 px tiles beats the downscaled crop.** It gains +4.4 pp clean (88.6% → 93.0%) and +5.0 pp format-matched, so this gain survives the format check that CLIP failed.
+  - ADM gains the most (+9.6 pp clean).
+  - Midjourney, at 1024 px, is the only loss (−3.2 pp).
+- **Under JPEG Q50 the gain turns into threshold drift.** Balanced accuracy is −2.6 pp, with AUROC unchanged. That is the pattern of section 8, which augmented training fixed for the downscaled crop.
+- **Open caveat: a possible scale cue.** The native views keep each image's size, which differs by class in GenImage. Real photos (about 375 × 500) are seen zoomed in, while 256 px fakes look almost the same as in the downscaled crop. The probe could learn "native photo scale = real"; this fits the largest gains being on the 256 px generators ADM and VQDM. A size-matched test is needed before this gain is trusted.
+
+**Takeaway.** CLIP adds little that is not a shortcut. Native resolution is the most promising direction left, but it is unproven until a size-matched test rules out the scale cue. Only then is it worth training the final detector's recipe (block 20, augmented training) on native tiles.
+
 ---
 
 ## What the project shows
@@ -192,4 +213,7 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **Statistical scope.** One data split and one real-photo source. The real test photos are shared across holdouts, so the 7-generator means are not independent samples. Bootstrap intervals cover image sampling only.
 - **Label-free thresholds need a batch of images that share one degradation.** The final single-image detector doesn't need them (section 9). In GenImage, file metadata partly reveals the class: generated images are never JPEG, and BigGAN's are all 128 px. That limits how far metadata rules can be trusted on this benchmark.
 - **Cross-dataset test of the final detector.** `models/final_detector_dinov2_l20_mlp.pt` (trained on all 7 GenImage generators) and `scripts/score_final_detector.py` are ready to run on Michael's COCO, Unsplash, FFHQ/LSUN and Synthbuster sets.
-- **Further models.** Intermediate CLIP layers, DINOv3, SigLIP 2, and native-resolution tiling, since every model here sees images shrunk to 224 px.
+- **Further models.**
+  - A size-matched test of native-resolution tiles (section 10), then augmented training on them.
+  - DINOv3 needs its gated weights; SigLIP 2 has not been tried.
+  - Any new backbone must also pass the format-matched test, which CLIP's intermediate blocks failed.
