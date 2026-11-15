@@ -273,6 +273,100 @@ This is the same lesson as the early DINOv2 blocks: accuracy on the seen generat
 
 With `--backbones`, the ResNet methods join the 22 frozen-feature probes in the router's pool (`results/resnet_dinov2_comparison_with_backbones.md`). In every condition the 22 probes cover, the router never picks a ResNet method, so its results match the earlier router exactly (79.2% mean over the six standard conditions). Format q96 is the exception, because only the rows above have scores there. Fine-tuned ResNet-18 adds nothing to the frozen-feature detectors.
 
+#### Degradation-augmented DINOv2 probes (all 7 holdouts)
+
+`python scripts/augmented_probe_experiments.py` refits the main runs' probes on DINOv2 embeddings of the seen generators' training images after the ResNet study's random artifacts, applied once per image before embedding:
+
+- **jpeg**: JPEG quality 30–95, with p = 0.5.
+- **resize**: down to 32, 64 or 128 px and back to 256, with p = 0.5.
+- **both**: the two above, applied independently.
+- **clean+both**: the clean and *both* embeddings together.
+
+Thresholds still come from clean seen-generator validation, so each probe is one detector that is not told the test condition. The run embeds the 10,800 augmented images the earlier GLIDE-only runs had not cached, in about 25 min; on GLIDE it reproduces those runs exactly. The output is `results/augmented_probes.md`. Mean balanced accuracy over the 7 holdouts:
+
+| MLP fit on | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG | Format 256+q96 | Mean (6 std.) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| clean (main runs) | **85.3%** | 74.7% | **81.5%** | 74.1% | 61.6% | 68.1% | **82.5%** | 74.2% |
+| jpeg | 84.0% | **79.3%** | 80.8% | 73.7% | 61.8% | 69.2% | 81.9% | 74.8% |
+| resize | 83.1% | 75.7% | 80.5% | 75.5% | **65.6%** | 69.5% | 80.6% | 75.0% |
+| both | 82.7% | 78.3% | 80.8% | **75.8%** | **65.6%** | **71.5%** | 80.7% | 75.8% |
+| clean + both | 84.2% | 78.3% | **81.5%** | **75.8%** | 65.0% | 70.5% | 81.9% | **75.9%** |
+| *E4 router (condition-aware)* | *85.1%* | *76.3%* | *82.0%* | *74.8%* | *64.6%* | *71.1%* | *83.7%* | *75.7%* |
+
+The effects are the same as Tyrone found for ResNet on GLIDE, but much smaller.
+
+- JPEG augmentation helps JPEG: +4.5 pp at Q50.
+- Resize augmentation helps resizing: +4.0 pp at 32 px.
+- Both cost 1.3–2.6 pp on clean images and on the format-matched set.
+
+Fitting on clean + both keeps most of each gain (+3.6 pp JPEG, +3.4 pp 32 px) for −1.1 pp on clean images, +1.7 pp mean, all significant. That single detector matches E4's condition-aware router (+0.2 pp, not significant) without being told the degradation. Adding the augmented probes to the router's pool gains +1.2 pp (76.8%).
+
+The gains are far smaller than the backbone and layer choice (block 20, 76.7%) or the threshold adaptation below.
+
+#### Threshold adaptation: how much of the degradation loss is a threshold shift?
+
+Under JPEG and resizing, AUROC falls much less than balanced accuracy, so part of the loss is a threshold set on clean images that no longer separates the classes. `python scripts/threshold_adaptation_experiments.py` compares five threshold rules for fixed detectors and writes `results/threshold_adaptation.md`:
+
+- **clean val**: the main runs' rule.
+- **degraded val**: re-picked on degraded seen-generator validation. It needs the condition, as E4's +recal did.
+- **Two label-free rules** computed from the unlabelled test batch (one held-out generator, one condition):
+  - **median**: its median score.
+  - **GMM**: the crossing point of a two-component Gaussian mixture on its logit scores.
+- **oracle**: the best threshold on the test labels, as an upper bound.
+
+Mean balanced accuracy over the six standard conditions; JPEG Q50 in brackets:
+
+| Detector | Clean val | Degraded val | Test median | Test GMM | Oracle | GMM, 20% / 80% real batches |
+|---|---:|---:|---:|---:|---:|---:|
+| DINOv2 clean + diff MLP (main runs) | 74.2% (74.7) | 74.8% (77.3) | 75.6% (77.9) | 75.1% (77.9) | 76.4% (79.0) | 72.4% / 75.5% |
+| DINOv2 L20 MLP | 76.7% (74.7) | 79.2% (82.8) | 80.2% (84.1) | **80.2%** (84.0) | 80.8% (84.7) | **78.7% / 79.7%** |
+| DINOv2 + CLIP fusion | 70.9% (69.8) | 77.6% (83.6) | 78.3% (84.1) | 78.2% (84.0) | 78.9% (84.8) | 76.4% / 77.9% |
+| DINOv2 L24 LR | 73.4% (74.8) | 73.6% (75.0) | 73.9% (74.9) | 73.3% (74.4) | 74.6% (75.9) | 71.1% / 73.8% |
+| ResNet-18 squash224 | 60.8% (63.3) | 62.8% (64.1) | 63.0% (63.7) | 62.9% (63.6) | 64.5% (65.2) | 61.9% / 62.8% |
+
+**It depends on the detector.**
+
+- For the main DINOv2 MLP and the final-layer logistic regression, the loss is mostly real. Even the oracle threshold recovers only 1.2–2.2 pp on average, and 4.3 pp at JPEG Q50.
+- Block 20 and the CLIP fusion still rank images well under JPEG, but their scores drift. The oracle gains them 10–15 pp at JPEG Q50 and 6–9 pp at 128 + JPEG. For the fusion it also gains 8–10 pp under every resize, so most of its apparent fragility is this drift.
+- ResNet's collapse at 64 and 32 px is not a threshold problem: even the oracle reaches only 53–55%.
+
+**The mixture rule recovers nearly all of the drift without labels.** It ends within 0.6–0.8 pp of the oracle for block 20 and the fusion. Block 20 with it reaches 80.2% over the six standard conditions, more than the 22-probe router (79.2%), without being told the degradation and without degraded validation data.
+
+The median rule is as good only when the batch is half real. On batches that are 20% or 80% real it falls to about 75%, while the mixture rule holds at 78.7% and 79.7%.
+
+Two limits:
+- Both label-free rules need a batch of unlabelled images that share one degradation; here each batch was 1,000 test images.
+- Block 20 is the post-hoc layer choice (see the nested selection below).
+
+#### Nested leave-one-generator-out model selection
+
+Until now each choice was judged either after the fact on the test generator (block 20, the CLIP fusion) or on the seen generators' own validation images. The latter rewards fitting the seen generators. `python scripts/nested_selection_experiments.py` makes the choice the way the task is posed, by generalisation to a generator the probe has not seen. It takes about 40 min and writes `results/nested_selection.md`.
+
+For each outer held-out generator, every candidate is refit with one seen generator held out at a time, five times six fits in all, and scored on that inner held-out generator. The candidates are the 22 frozen-feature probes, the main runs' MLP and its CLIP fusion. The outer test generator is never used for selection. Mean balanced accuracy over the 7 outer holdouts:
+
+| Selection rule | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG | Format 256+q96 | Mean (6 std.) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Main runs' MLP (no selection) | 85.3% | 74.7% | 81.5% | 74.1% | 61.6% | 68.1% | 82.5% | 74.2% |
+| Best clean seen-generator val | 87.7% | 62.2% | 80.8% | 67.0% | 52.6% | 53.3% | 81.2% | 67.3% |
+| Best nested clean BA | 87.6% | 67.4% | 79.9% | 68.8% | 53.9% | 61.6% | 79.8% | 69.9% |
+| Best nested BA over the six conditions (one detector) | 83.3% | 76.9% | 80.7% | 75.0% | 63.6% | 71.1% | 82.2% | 75.1% |
+| Router (degraded seen-generator val) | 87.3% | 82.4% | **87.1%** | **79.4%** | 65.2% | **73.8%** | 83.4% | **79.2%** |
+| Nested router (best nested BA per condition) | **87.8%** | **83.0%** | 85.1% | 78.2% | **65.8%** | 72.8% | **85.4%** | 78.8% |
+
+**Clean images.** Nested selection is an honest version of the clean-image gains. It picks the DINOv2 + CLIP fusion in 4 of 7 folds and the multi-layer probe or DINOv2 + CLIP concatenation in the rest: +2.3 pp over the main MLP, significant, against the post-hoc +4.7 pp of always using the fusion.
+
+The nested scores are also a trustworthy estimate. The candidates' inner clean accuracy ranks them almost exactly as their outer test accuracy does: fusion 88.9% inner vs 90.0% outer, block 20 87.2% vs 88.6%. Seen-generator validation, by contrast, puts blocks 12–16 at 95–97% against 78–85% on unseen generators.
+
+**Robustness.** Clean-only selection, nested or not, picks probes that collapse under degradation: −6.5 to −14.7 pp under JPEG and 128 + JPEG. Choosing the one detector with the best nested accuracy over all six conditions gives the layer-24 mean-patch probe (5 folds) or block 20 (2 folds): 75.1%, +0.9 pp over the main MLP, significant.
+
+Averaged over folds, those two tie for the best single robust probe (75.8% vs 75.6% inner). With the threshold re-picked per condition, block 20 is the clear first choice (78.4% inner; 79.2% outer). So block 20 holds up under honest selection, and the post-hoc choice was not just luck.
+
+**Routers.** The nested router comes out level with the existing router: 78.8% vs 79.2% over the six standard conditions (−0.4 pp), with +1.9 pp on the format-matched set. Choosing per condition on degraded seen-generator validation was therefore already a sound rule, since the degradation, not seen-generator overfitting, dominates that signal.
+
+The nested router does fix the old router's weak spot, clean ADM: 77.4% vs 67.1%, where the old router had picked a block-12 probe. Midjourney rises as well, from 75.0% to 80.3%, but VQDM falls from 88.5% to 79.1%.
+
+**Recommended final detector.** The DINOv2 block-20 MLP with the label-free mixture threshold: **80.2%** mean over the six standard conditions and 90.0% clean. It needs neither the degradation type nor labelled degraded data, and nested selection backs both the layer and its use with an adapted threshold. If test images arrive one at a time rather than in batches, use the router instead (79.2%), which needs the degradation type or the A3 classifier.
+
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
@@ -291,6 +385,9 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/backbone_comparison.py` — probes, fusion, cross-backbone router and family holdout on those features.
 - `scripts/resnet_checkpoint_scores.py` — scores every test image with the seven fine-tuned ResNet-18 checkpoints (squash224 and centre-crop views).
 - `scripts/resnet_dinov2_comparison.py` — ResNet-18 vs DINOv2, their ensemble and router, from those scores.
+- `scripts/augmented_probe_experiments.py` — DINOv2 probes fit on JPEG/resize-augmented embeddings, all 7 holdouts.
+- `scripts/threshold_adaptation_experiments.py` — clean, degraded-val, label-free (median, GMM) and oracle thresholds.
+- `scripts/nested_selection_experiments.py` — nested leave-one-generator-out choice of layer, probe and router.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.

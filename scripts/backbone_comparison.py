@@ -104,9 +104,12 @@ def fit_probe(kind: str, X: np.ndarray, y: np.ndarray, args):
     return score
 
 
-def scores_for(args, fstore, dstore, held_out: str, seen: list[str], with_degraded: bool) -> dict:
-    """{method: {"val": s, "test": {c: s}, "dval": {c: s}}} for every probe on one training set."""
-    fit_rec, val_rec = cpe.splits(args, seen, seen[0])
+def scores_for(args, fstore, dstore, held_out: str, seen: list[str], with_degraded: bool,
+               real_source: str | None = None) -> dict:
+    """{method: {"val": s, "test": {c: s}, "dval": {c: s}}} for every probe on one training set.
+
+    Real photos come from real_source's train/nature (default seen[0], as in the main runs)."""
+    fit_rec, val_rec = cpe.splits(args, seen, real_source or seen[0])
     val_new = fa.shared_val(args, val_rec)
     test_rec = cpe.test_records(args, held_out)
     dval_rec = [r for g in seen for r in cpe.test_records(args, g)]
