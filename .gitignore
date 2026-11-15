@@ -20,6 +20,7 @@ model/DINOv2/Frozen DINO model/torch_hub
 
 # Frozen-DINOv2 GenImage holdout: cached embeddings and fitted probes are large and reproducible
 results/dinov2_embeddings
+results/backbone_embeddings
 model/DINOv2/Frozen DINO model/checkpoints/
 
 # Originals left behind after moving the venv, DINOv2 hub cache and embeddings out of iCloud

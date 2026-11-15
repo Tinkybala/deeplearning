@@ -209,6 +209,33 @@ On the format-matched test set, aligned training recovers most of the loss: +2.3
 
 Taken together, about 2–3 pp of the clean-trained probe's mean accuracy, and up to 10 pp for Midjourney, depends on the PNG-versus-JPEG format difference. A format-independent estimate of how well frozen DINOv2 generalises to unseen generators is about 84–85% mean balanced accuracy. Aligned training does not improve robustness to the six standard degradations; it trades about 1.7 pp on raw benchmark files for a detector whose accuracy does not depend on the file format. RIGID has nothing to retrain, and its threshold chosen on aligned images transfers worse to raw files (−2.7 pp clean).
 
+#### Backbone and layer comparison (CLIP, intermediate DINOv2 layers)
+
+`python scripts/backbone_features.py` embeds every needed image once, with one decode pass feeding two frozen ViT-L/14 backbones. It stores the DINOv2 CLS and mean patch tokens after blocks 8, 12, 16, 20 and 24, and the OpenAI CLIP image embedding, the backbone of UnivFD. The features cover the 6 standard conditions and Format 256+q96: about 67,000 images, 1.4 GB in `results/backbone_embeddings/` (git-ignored), and about 2.5 h on an M-series Mac. It needs `pip install open_clip_torch`.
+
+`python scripts/backbone_comparison.py` then fits the same logistic-regression and MLP probes under the main protocol and writes `results/backbone_comparison.md`. Layer-24 logistic regression reproduces the main runs' `logreg_clean` exactly on every holdout. Mean balanced accuracy over the 7 holdouts:
+
+| Features, probe | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG | Format 256+q96 | Family out | Seen val |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| DINOv2 L24 clean + diff, MLP (main runs) | 85.3% | 74.7% | 81.5% | 74.1% | 61.6% | 68.1% | 82.5% | 84.2% | 89.9% |
+| DINOv2 L12, MLP | 83.6% | 53.1% | 65.4% | 52.8% | 50.0% | 50.0% | 67.5% | 76.4% | 97.0% |
+| DINOv2 L16, MLP | 85.3% | 56.6% | 78.6% | 55.9% | 50.9% | 50.7% | 76.9% | 78.1% | 96.7% |
+| DINOv2 L20, MLP | 88.6% | 74.7% | 85.8% | 78.5% | 66.4% | 66.3% | 83.4% | 84.9% | 94.6% |
+| DINOv2 L24, MLP | 81.5% | 76.9% | 79.1% | 74.4% | 66.1% | 72.4% | 80.3% | 80.1% | 85.5% |
+| CLIP ViT-L/14, MLP | 87.7% | 63.9% | 66.9% | 57.4% | 51.1% | 58.6% | 74.6% | 85.9% | 93.4% |
+| Fusion: main MLP + CLIP MLP | **90.0%** | 69.8% | 77.8% | 66.8% | 54.5% | 66.2% | 81.1% | **89.0%** | 94.8% |
+| Router over all probes | 87.3% | **82.4%** | **87.1%** | **79.4%** | 65.2% | 73.8% | 83.4% | | |
+
+**Layers.** Earlier DINOv2 blocks carry a strong but fragile signal. Blocks 12–16 reach 95–97% on the seen generators' validation images and up to 86.5% on unseen generators, but fall to about 50–56% under JPEG Q50 or downsampling to 64 px. The final block is robust but weaker on clean images (81.5%). Block 20 combines the two. Its MLP beats the main runs' detector by 3.3 pp on clean images and by 4.3–4.8 pp under resizing to 128, 64 and 32 px, all significant, and ties it under JPEG Q50, though it is 1.7 pp worse at 128 + JPEG.
+
+This choice of layer is a post-hoc observation, not something tuned. Clean seen-generator validation would have picked blocks 12–16, whose high seen accuracy reflects overfitting to the seen generators' artifacts. Choosing a layer needs degraded validation data, which is what the router uses.
+
+**CLIP.** The UnivFD backbone beats DINOv2 on clean images (MLP 87.7%, +2.4 pp; 85.9% with families held out) but loses 10–17 pp under every degradation. It also depends more on the format shortcut: 74.6% on the format-matched test set, against 82.5% for DINOv2. Averaging the logits of the main DINOv2 MLP and the CLIP MLP gives the best clean result, 90.0% (+4.7 pp, significant), and 89.0% with families held out. Under degradation, however, CLIP pulls the average down.
+
+**Router across backbones and layers.** This is E4's router choosing among all 22 probes, with selection on degraded seen-generator validation only. Its mean over the six standard conditions is 79.2%, against 74.2% for the main runs' detector. It gains significantly in every standard condition: +2.0 pp on clean images, +7.6 pp at JPEG Q50, and +3.6 to +5.7 pp under resizing. It picks the multi-layer and block-20 probes for clean images, JPEG and moderate resizing, and the block-24 mean patch token at 32 px and 128 + JPEG.
+
+Its weak spot is clean ADM. There it picks a block-12 probe that scores 97% on the seen generators but only 67% on ADM, which is the same seen-generator overfitting at a cost of 9.5 pp. All new probes use one MLP seed; A4 puts the seed spread of 7-generator means at 0.2–0.4 pp.
+
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
@@ -223,6 +250,8 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/summarize_logo.py` — leave-one-generator-out averages across every finished holdout.
 - `scripts/cached_probe_experiments.py` — leave-one-family-out (E3, A1), degradation-aware probe routing (E4) and MLP seed robustness (A4) on cached embeddings.
 - `scripts/format_alignment_experiments.py` — format-matched test set (E1) and format-aligned training (E2); embeds the new format conditions.
+- `scripts/backbone_features.py` — frozen CLIP ViT-L/14 and intermediate DINOv2 layer features for every needed image (embedding only).
+- `scripts/backbone_comparison.py` — probes, fusion, cross-backbone router and family holdout on those features.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.
