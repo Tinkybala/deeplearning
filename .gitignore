@@ -27,3 +27,4 @@ model/DINOv2/Frozen DINO model/checkpoints/
 *-icloud-old/
 results/_nested_selection_state.pkl
 results/_final_detector_state.pkl
+results/_augmented_layer_selection_state.pkl

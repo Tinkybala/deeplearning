@@ -171,6 +171,7 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 
 - **Augmentation pays off on block 20.** It gains +4.6 pp on average, with +8.5 pp at JPEG Q50 and +10.0 pp at 128 + JPEG, at no clean cost. The same augmentation gave only +1.7 pp on the final layer. Block 20 still holds the fine detail the probe can learn to read under degradation.
 - **Augmentation also removes most of the threshold drift.** A single threshold is within 2.1 pp of the oracle. File-metadata thresholds add only 0.3 pp, and routers add nothing.
+- **Nested selection over all 32 augmented and clean layer probes agrees** (`results/augmented_layer_selection.md`). It picks the augmented block-12–24 concatenation or the augmented block-20 MLP, at 81.2% vs 81.3% (not significant). Augmentation also removes the early blocks' fragility: the concatenation goes from 70.2% to 82.2%.
 - **Final detector:** the augmented block-20 MLP with one fixed threshold. It works on single images, needs neither the degradation type nor metadata, and averages 81.3%. That is +7.1 pp over the main runs' detector and +20.5 pp over the fine-tuned ResNet. With batches of images that share one degradation, the label-free threshold adds 1.6 pp.
 
 ---
@@ -190,4 +191,5 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **The cross-dataset gap is the largest open risk.** Michael's probes fall to 0.65–0.76 AUROC on a different dataset. All GenImage results share ImageNet real photos and 2021–2023 generators. A test on newer generators (FLUX, SDXL, SD3) and other real-photo sources is the natural next experiment.
 - **Statistical scope.** One data split and one real-photo source. The real test photos are shared across holdouts, so the 7-generator means are not independent samples. Bootstrap intervals cover image sampling only.
 - **Label-free thresholds need a batch of images that share one degradation.** The final single-image detector doesn't need them (section 9). In GenImage, file metadata partly reveals the class: generated images are never JPEG, and BigGAN's are all 128 px. That limits how far metadata rules can be trusted on this benchmark.
+- **Cross-dataset test of the final detector.** `models/final_detector_dinov2_l20_mlp.pt` (trained on all 7 GenImage generators) and `scripts/score_final_detector.py` are ready to run on Michael's COCO, Unsplash, FFHQ/LSUN and Synthbuster sets.
 - **Further models.** Intermediate CLIP layers, DINOv3, SigLIP 2, and native-resolution tiling, since every model here sees images shrunk to 224 px.

@@ -404,6 +404,45 @@ The metadata buckets are almost class-neutral. The exceptions are 133 low-qualit
 - When images arrive in batches that share one degradation, the label-free mixture threshold adds 1.6 pp, for **82.9%** mean and 90.5% clean. It stays at 81.6–81.7% on batches that are 20% or 80% real.
 - The choice of *clean + augmented* over *augmented only* (80.9%) was made on these test results, but the two differ by only 0.4 pp.
 
+#### Augmented training for every layer, with nested selection
+
+`python scripts/augmented_layer_selection.py` fits all 32 single detectors and writes `results/augmented_layer_selection.md`: 8 DINOv2 feature sets × {LR, MLP} × {clean, clean + augmented} training, each with the clean-val threshold. It then chooses one by nested leave-one-generator-out accuracy over the six conditions, as in the nested selection above. It takes about 75 min. Mean balanced accuracy over the 7 holdouts:
+
+| Detector | Inner score | Clean | JPEG Q50 | Resize 64 | Resize 32 | 128 + JPEG | Mean (6 std.) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Blocks 12–24 concatenated, LR, clean + augmented | **81.3%** | **89.3%** | **83.8%** | **82.3%** | **73.8%** | 76.7% | **82.2%** |
+| **Block 20, MLP, clean + augmented (final detector)** | 80.6% | 88.7% | 83.2% | 80.7% | 72.3% | 76.4% | 81.3% |
+| Blocks 12–24 concatenated, LR, clean | 69.2% | 88.5% | 66.7% | 72.0% | 53.3% | 56.0% | 70.2% |
+| Block 12, MLP, clean → clean + augmented | 59.6% → 67.1% | 83.6% → 80.6% | 53.1% → 64.8% | 52.8% → 69.0% | 50.0% → 65.7% | 50.0% → 55.1% | 59.2% → 68.5% |
+| Nested pick (mean of 6 conditions) | | 88.6% | 82.8% | 80.3% | 72.5% | 76.3% | 81.2% |
+| Nested pick (clean only) | | 86.9% | 74.4% | 77.7% | 65.1% | 68.3% | 76.4% |
+| Seen-val pick | | 87.8% | 67.2% | 70.5% | 55.3% | 56.1% | 70.2% |
+
+**Augmentation removes the fragility of the early blocks.** Trained on clean images, blocks 12–16 and the 12–24 concatenation reached 95–97% on the seen generators but collapsed under JPEG and downsampling. With clean + augmented training, the concatenation becomes the strongest detector (82.2%, +12.0 pp), and block 12 gains +9.3 pp.
+
+**Nested selection confirms the final detector.** It picks only the 12–24 concatenation (5 folds) or the block-20 MLP (2 folds), both augmented, and scores 81.2% against the final detector's 81.3% (−0.2 pp, not significant). The inner scores rank the candidates in the same order as the test scores: the top three agree. Choosing on clean accuracy instead costs 5.0 pp, and choosing on seen-generator validation costs 11.1 pp.
+
+The block-20 MLP stays the exported detector: it uses a single block and was chosen before this test. The 12–24 concatenation is an equally valid alternative, about 1 pp better after the fact.
+
+#### Exported final detector, for tests on other datasets
+
+`python scripts/export_final_detector.py` fits the final detector on all seven generators, using only cached features. It uses every generator's training fakes (14,000) and 3,200 distinct real photos from the BigGAN and VQDM folders, each clean and augmented. It saves the model to `models/final_detector_dinov2_l20_mlp.pt`: 1 MB, holding tensors and plain values only, so it is safe to load with `weights_only=True`.
+
+The threshold, P(real) ≥ 0.171, is calibrated on 800 held-out real photos and every generator's validation fakes. Because the exported model has seen every GenImage generator, its GenImage numbers mean nothing; it is meant for other datasets.
+
+`python scripts/score_final_detector.py` scores folders of real and generated images from any source with that model, for example:
+
+```bash
+python scripts/score_final_detector.py --name coco --real <coco real> --fake <sd3> <sd35> <midjourney6> --max-per-folder 200
+```
+
+It reports, overall and per folder:
+- AUROC;
+- balanced accuracy at the shipped threshold, at the label-free mixture threshold of that test set, and at the oracle threshold;
+- real and generated recall.
+
+Results go to `results/external/<name>.{md,json}`, with per-image scores in a CSV. The first run downloads DINOv2 ViT-L/14. On 128 GenImage test images, the script's P(real) matches the exported model applied to the cached features to within 5 × 10⁻⁷.
+
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
@@ -427,6 +466,9 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/nested_selection_experiments.py` — nested leave-one-generator-out choice of layer, probe and router.
 - `scripts/augmented_backbone_features.py` — block-wise DINOv2 features of the augmented training images (reproduces the cached augmentation exactly).
 - `scripts/final_detector_experiments.py` — the final detector: block-20 probes on augmented images with batch and single-image (metadata) thresholds.
+- `scripts/export_final_detector.py`, `scripts/score_final_detector.py` — train and save the final detector on all seven generators; score any folders of real and generated images with it.
+- `scripts/augmented_layer_selection.py` — every DINOv2 layer probe with augmented training, chosen by nested leave-one-generator-out.
+- `models/final_detector_dinov2_l20_mlp.pt` — the exported final detector (1 MB).
 - `EXPERIMENT_STORY.md` — how all experiments on the three branches fit together.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
