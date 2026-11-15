@@ -7,8 +7,9 @@
 **Runs:** seed 42, 8 epochs, batch size 32
 
 > This report records the work completed to date. It is not a final claim about
-> unseen-generator detection. The current comparison uses one held-out
-> generator and one seed; more holdouts, seeds, and analyses remain possible.
+> unseen-generator detection. The augmentation ablation uses one held-out
+> generator; the separate baseline sweep covers all seven GenImage generators
+> with one seed. More seeds, ablation holdouts, and analyses remain possible.
 
 ## 1. Project question and purpose
 
@@ -251,10 +252,10 @@ cross-generator improvement.
 
 ## 7. Interpretation limits
 
-1. **One held-out generator:** all final results here are for GLIDE. A larger
-   leave-one-generator-out study should rotate the holdout and summarize
-   variation across generators.
-2. **One random seed:** the current comparisons use seed 42. The differences
+1. **Scope differs by experiment:** the augmentation ablation tests only
+   held-out GLIDE. The separate baseline sweep rotates the holdout across all
+   seven GenImage generator folders, but it uses only one seed.
+2. **One random seed:** all current comparisons use seed 42. The differences
    have not been tested for run-to-run variation or statistical uncertainty.
 3. **One dataset collection and real-image source:** results may reflect this
    dataset's image composition or collection process.
@@ -279,6 +280,12 @@ cross-generator improvement.
 - Ran the unaugmented GLIDE holdout baseline.
 - Ran the JPEG-plus-resize training condition.
 - Added and ran the JPEG-only and resize-only ablations.
+- Trained and evaluated a baseline ResNet-18 for each of the seven GenImage
+  leave-one-generator-out splits using a 224×224 resize matched to DINOv2/RIGID.
+- Kept one best-validation checkpoint per held-out generator and exported
+  summaries, training histories, and per-image scores for all six conditions.
+- Validated all seven matched-format checkpoints, 500/500 test class counts,
+  and referenced image paths.
 - Recorded the split, methods, results, caveats, and follow-up directions.
 - Added a plot-generation script and three report figures.
 - Changed per-image score paths to dataset-relative paths before sharing, and
@@ -289,6 +296,7 @@ Useful files:
 
 - [`scripts/train_resnet_generalization.py`](scripts/train_resnet_generalization.py) — model training and evaluation.
 - [`scripts/make_report_assets.py`](scripts/make_report_assets.py) — portable score export and figures.
+- [`scripts/summarize_resnet_lodo.py`](scripts/summarize_resnet_lodo.py) — validates and summarizes the seven matched-format holdout runs.
 - [`RESNET_EXPERIMENT.md`](RESNET_EXPERIMENT.md) — concise experiment notes.
 - [`results/`](results/) — text summaries, training histories, and per-image scores for each run.
 - [`reports/figures/`](reports/figures/) — graphs embedded in this report and the README.
@@ -302,11 +310,12 @@ repository.
 
 These are options for continued work; no final direction is selected yet:
 
-1. **Repeat seeds** for the four GLIDE conditions to determine whether the
-   observed differences are stable.
-2. **Rotate the held-out generator** and compare per-generator and macro-average
-   results. This directly tests whether the augmentation finding transfers
-   across unseen generator families.
+1. **Repeat seeds** for the seven-generator baseline sweep and the four GLIDE
+   augmentation conditions to determine whether the observed differences are
+   stable.
+2. **Rotate the augmentation ablation** across held-out generators. The
+   current seven-generator sweep rotates the unaugmented baseline; it does not
+   yet show whether JPEG or resize augmentation transfers consistently.
 3. **Tune the resize policy** on seen validation data, for example lower
    application probability or fewer severe downscales, while reporting clean
    performance as a co-primary outcome.
@@ -322,3 +331,56 @@ Any future experiment should log its holdout generator, seed, split sizes,
 training and selection procedure, threshold policy, all test conditions, and
 per-class metrics. Keep this report open to additions and corrections as the
 project develops.
+
+## 10. Seven-generator ResNet sweep with DINOv2-matched preprocessing
+
+This follow-up sweep trains a separate baseline ResNet-18 for each held-out
+generator. The held-out generator is absent from fitting and model selection;
+the other six provide 12,000 generated training images and 3,000 generated
+validation images. Each run also uses 1,600 unique real training photographs
+for fitting and 400 reserved real training photographs for validation and
+threshold calibration. Each final test has 500 real and 500 generated images.
+
+For a format-matched comparison with DINOv2/RIGID, validation and test images
+are resized directly to 224×224 before ImageNet normalization, matching the
+`Resize((224, 224))` preprocessing in `rigid.py`. Checkpoints and thresholds
+are selected using seen-generator validation only. The six final test
+conditions are clean, JPEG Q50, resize to 128/64/32 px, and resize to 128 px
+plus JPEG Q50. The clean condition is the primary cross-generator comparison;
+the other conditions extend the artifact robustness analysis.
+
+| Held-out generator | Best epoch | Clean balanced accuracy | Clean AUROC |
+|---|---:|---:|---:|
+| BigGAN | 8 | 75.7% | 0.869 |
+| VQDM | 7 | 55.3% | 0.633 |
+| Stable Diffusion v5 | 6 | 79.8% | 0.878 |
+| Wukong | 6 | 79.6% | 0.876 |
+| ADM | 6 | 61.6% | 0.689 |
+| GLIDE | 5 | 90.4% | 0.971 |
+| Midjourney | 5 | 63.3% | 0.703 |
+| **Macro mean** | — | **72.2%** | **0.803** |
+
+![Clean balanced accuracy by held-out generator](reports/figures/resnet_lodo_squash224_clean.png)
+
+The spread across generators shows why a single GLIDE result is insufficient
+to characterize generalization. GLIDE is the strongest transfer in this sweep,
+while VQDM is the weakest; several others fall between roughly 62% and 80%
+balanced accuracy. The macro mean is descriptive rather than an estimate over
+independent image samples: GenImage shares the same real validation photos
+across generator folders, so real test images are reused across these
+generator-specific evaluations. These runs use one seed and do not establish
+performance on generators outside GenImage.
+
+Machine-readable run summaries are in
+[`results/resnet_rigid_format_lodo_summary.csv`](results/resnet_rigid_format_lodo_summary.csv)
+and [`results/resnet_rigid_format_lodo_summary.json`](results/resnet_rigid_format_lodo_summary.json).
+Each run folder contains a summary, history, and per-image scores. Its kept
+checkpoint is under
+`model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_<generator>/best_model.pt`;
+the 43 MB checkpoints are local and excluded from Git.
+
+The clean test uses matched input resolution and preprocessing, which makes it
+suitable for a direct ResNet versus DINOv2/RIGID comparison only if both score
+the same held-out images with the same real/fake labels. It does not imply that
+the model architectures or decision rules are otherwise identical. The
+augmentation ablation remains GLIDE-only until repeated for other holdouts.

@@ -2,7 +2,7 @@
 
 ## Current work
 
-The current experiment fine-tunes an ImageNet-pretrained ResNet-18 to distinguish real ImageNet photographs from AI-generated images. It tests whether the model transfers to a generator it did not see during training: **GLIDE is held out entirely**, and six other generator categories are used to fit the model and select its decision threshold.
+The project fine-tunes an ImageNet-pretrained ResNet-18 to distinguish real ImageNet photographs from AI-generated images. The artifact-augmentation ablation holds out **GLIDE**. A separate leave-one-generator-out sweep now trains a baseline with each of the seven GenImage generators held out in turn.
 
 The first study compares a standard training setup with artifact augmentations. Follow-up ablations train with JPEG augmentation alone and downsampling augmentation alone. The experiment varies training augmentation while keeping the held-out generator, split, seed, training duration, and test conditions fixed.
 
@@ -37,6 +37,27 @@ AUROC is included because it measures score ranking without relying on a single 
 ![AUROC by model and test condition](reports/figures/test_auroc.png)
 
 **Early interpretation:** augmentation effects are distortion-specific. JPEG-only training markedly improves JPEG-Q50 detection while preserving clean AUROC. Resize augmentation improves detection after stronger downsampling, with a clean-image performance cost. These are preliminary results from one held-out generator and one seed, not a conclusion about all generators.
+
+### Seven-generator leave-one-out sweep
+
+To compare ResNet with DINOv2/RIGID on matching image preprocessing, the seven baseline models were evaluated with a direct 224×224 resize, matching `rigid.py`. Each model used one generator for final testing and the other six for training and validation. Clean-test balanced accuracy and AUROC are shown below; each test set contains 500 real and 500 fake images.
+
+| Held-out generator | Balanced accuracy | AUROC |
+|---|---:|---:|
+| BigGAN | 75.7% | 0.869 |
+| VQDM | 55.3% | 0.633 |
+| Stable Diffusion v5 | 79.8% | 0.878 |
+| Wukong | 79.6% | 0.876 |
+| ADM | 61.6% | 0.689 |
+| GLIDE | 90.4% | 0.971 |
+| Midjourney | 63.3% | 0.703 |
+| **Macro mean across held-out generators** | **72.2%** | **0.803** |
+
+![ResNet clean balanced accuracy for each held-out generator](reports/figures/resnet_lodo_squash224_clean.png)
+
+These results show that ResNet transfer varies substantially by held-out generator. The macro mean is descriptive: GenImage reuses the same real validation photographs across its generator folders, so the seven tests do not contain seven independent sets of real images. Each run used seed 42, and the threshold was selected using only its six seen generators. This is a single-seed baseline sweep, not evidence that one model generalizes equally across all generators.
+
+The per-image scores, run summaries, histories, and kept checkpoints are under `results/resnet_rigid_format_holdout_*` and `model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_*`. The checkpoints are local and ignored by Git because they are about 43 MB each.
 
 For the full protocol, detailed metrics, training curves, experiment history, limitations, and follow-up questions, see the [detailed report](REPORT.md). The shorter [experiment notes](RESNET_EXPERIMENT.md) document the current setup and commands.
 
@@ -99,6 +120,30 @@ From the repository directory on Windows, after setting up the environment and d
 .venv\Scripts\python.exe scripts\train_resnet_generalization.py `
   --held-out imagenet_glide --epochs 8 --batch-size 32 --workers 4 `
   --augmentation both
+```
+
+To repeat the seven-generator matched-preprocessing sweep, run this from the project root. The `squash224` evaluation format matches `rigid.py`'s direct 224×224 resize; each holdout produces its own checkpoint and results directory.
+
+```powershell
+$generators = @(
+  "imagenet_ai_0419_biggan", "imagenet_ai_0419_vqdm", "imagenet_ai_0424_sdv5",
+  "imagenet_ai_0424_wukong", "imagenet_ai_0508_adm", "imagenet_glide",
+  "imagenet_midjourney"
+)
+foreach ($generator in $generators) {
+  $testRoot = "dataset\image\training\GenImage"
+  $testSplit = "val"
+  if ($generator -eq "imagenet_glide") {
+    $testRoot = "dataset\image\test\GenImage"
+    $testSplit = "test"
+  }
+  .venv\Scripts\python.exe scripts\train_resnet_generalization.py `
+    --held-out $generator --eval-format squash224 `
+    --test-data-root $testRoot --test-split $testSplit `
+    --epochs 8 --batch-size 32 --workers 4 --seed 42
+  if ($LASTEXITCODE -ne 0) { throw "Run failed for $generator" }
+}
+.venv\Scripts\python.exe scripts\summarize_resnet_lodo.py
 ```
 
 The legacy `--robust-augmentation` option is an alias for `--augmentation both`. Choose another generator with `--held-out <generator-folder>` to start a new leave-one-generator-out run. Use `--eval-only` to score an existing local checkpoint again.

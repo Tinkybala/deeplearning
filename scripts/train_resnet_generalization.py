@@ -205,6 +205,15 @@ def main():
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--eval-format", choices=("center_crop", "squash224"),
+                        default="center_crop",
+                        help="Evaluation preprocessing; squash224 matches rigid.py's Resize((224, 224))")
+    parser.add_argument("--test-conditions", nargs="+",
+                        choices=("clean", "jpeg_q50", "resize_128", "resize_64",
+                                 "resize_32", "resize_jpeg_128"),
+                        default=("clean", "jpeg_q50", "resize_128", "resize_64",
+                                 "resize_32", "resize_jpeg_128"),
+                        help="Test conditions to score (defaults to all six)")
     parser.add_argument("--no-pretrained", action="store_true", help="Train from random initialization")
     parser.add_argument("--eval-only", action="store_true", help="Reuse an existing best_model.pt and only run held-out tests")
     parser.add_argument("--robust-augmentation", action="store_true",
@@ -257,19 +266,24 @@ def main():
                              std=ResNet18_Weights.DEFAULT.transforms().std),
     ])
     train_transform = transforms.Compose(train_steps)
-    eval_transform = transforms.Compose([
+    eval_steps = ([transforms.Resize((224, 224))] if args.eval_format == "squash224" else [
         transforms.Resize(256),
         transforms.CenterCrop(224),
+    ])
+    eval_steps.extend([
         transforms.ToTensor(),
         transforms.Normalize(mean=ResNet18_Weights.DEFAULT.transforms().mean,
                              std=ResNet18_Weights.DEFAULT.transforms().std),
     ])
+    eval_transform = transforms.Compose(eval_steps)
 
     pin = device.type == "cuda"
     train_loader = DataLoader(ImageRecords(train_records, train_transform), batch_size=args.batch_size,
-                              shuffle=True, num_workers=args.workers, pin_memory=pin)
+                              shuffle=True, num_workers=args.workers, pin_memory=pin,
+                              persistent_workers=args.workers > 0)
     val_loader = DataLoader(ImageRecords(val_records, eval_transform), batch_size=args.batch_size,
-                            shuffle=False, num_workers=args.workers, pin_memory=pin)
+                            shuffle=False, num_workers=args.workers, pin_memory=pin,
+                            persistent_workers=args.workers > 0)
     resnet_model_root = PROJECT_ROOT / "model" / "ResNet" / "Frozen Resnet model"
     torch.hub.set_dir(str(resnet_model_root / "torch_hub"))
     model = make_model(not args.no_pretrained and not args.eval_only, device)
@@ -280,6 +294,9 @@ def main():
         "both": f"resnet_robust_holdout_{args.held_out}",
     }
     run_name = run_names[augmentation]
+    if args.eval_format == "squash224":
+        augmentation_suffix = "" if augmentation == "none" else f"_{augmentation}"
+        run_name = f"resnet_rigid_format{augmentation_suffix}_holdout_{args.held_out}"
     out_dir = PROJECT_ROOT / "results" / run_name
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = (resnet_model_root / "checkpoints" / run_name / "best_model.pt")
@@ -341,7 +358,7 @@ def main():
     model.load_state_dict(checkpoint["model_state_dict"])
     threshold = checkpoint["threshold"]
 
-    conditions = ["clean", "jpeg_q50", "resize_128", "resize_64", "resize_32", "resize_jpeg_128"]
+    conditions = args.test_conditions
     summaries = {}
     all_details = []
     for condition in conditions:
@@ -371,6 +388,7 @@ def main():
         "training_data_root": portable_root(args.data_root),
         "test_data_root": portable_root(args.test_data_root),
         "test_split": args.test_split,
+        "evaluation_preprocessing": args.eval_format,
         "held_out_generator": args.held_out,
         "seen_generators": seen,
         "train_images": len(train_records),

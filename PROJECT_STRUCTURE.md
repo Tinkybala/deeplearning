@@ -24,7 +24,10 @@ deeplearning-michael/
 │   ├── resnet_holdout_imagenet_glide/
 │   ├── resnet_jpeg_holdout_imagenet_glide/
 │   ├── resnet_resize_holdout_imagenet_glide/
-│   └── resnet_robust_holdout_imagenet_glide/
+│   ├── resnet_robust_holdout_imagenet_glide/
+│   ├── resnet_rigid_format_holdout_<generator>/  # seven matched-format runs
+│   ├── resnet_rigid_format_lodo_summary.csv
+│   └── resnet_rigid_format_lodo_summary.json
 ├── reports/figures/
 ├── scripts/
 ├── configs/
@@ -41,13 +44,13 @@ The `.gitignore` excludes image data, local environments, downloaded DINOv2 cach
 ## Model files
 
 - **`model/ResNet/Frozen Resnet model/torch_hub/checkpoints/resnet18-f37072fd.pth`** — ImageNet-pretrained starting weights used by the ResNet-18 training script.
-- **`model/ResNet/Frozen Resnet model/checkpoints/<run-name>/best_model.pt`** — each fine-tuned ResNet checkpoint, selected on seen-generator validation data. Four GLIDE-holdout checkpoints are currently present.
+- **`model/ResNet/Frozen Resnet model/checkpoints/<run-name>/best_model.pt`** — each fine-tuned ResNet checkpoint, selected on seen-generator validation data. Four original GLIDE ablation checkpoints and seven DINOv2-input-matched leave-one-generator-out baseline checkpoints are present locally.
 - **`model/DINOv2/Frozen DINO model/torch_hub/`** — location where `rigid.py` caches the DINOv2 source and frozen ViT-L/14 weights on first use. The backbone weights had not been downloaded into this workspace at the time this layout was made.
 - **`model/DINOv2/Frozen DINO model/probes/`** — saved logistic-regression and MLP probes built on DINOv2 clean/noisy embedding features. Their metadata lists ImageNet and Synthbuster as training sources; no CIFAKE-trained probe artifact is currently in this folder. These are learned classifiers on top of a frozen backbone; the plain RIGID similarity score itself is training-free.
 
 ## Result files
 
-Each `results/resnet_*_holdout_imagenet_glide/` folder contains:
+Each `results/resnet_*_holdout_*/` folder contains:
 
 - **`summary.json`** — split sizes, best epoch, selected threshold, device/software, and metrics for all six test conditions.
 - **`training_history.json`** — per-epoch fit accuracy/loss and seen-generator validation balanced accuracy.
@@ -74,6 +77,7 @@ The `.pt` checkpoint for a run is stored in the `model/ResNet` hierarchy, not be
 ### Data preparation and reporting utilities
 
 - **`scripts/make_report_assets.py`** — converts existing ResNet score paths to the new dataset tree and regenerates the report graphs.
+- **`scripts/summarize_resnet_lodo.py`** — verifies and summarizes all seven matched-format holdout runs; writes the CSV/JSON macro summary and clean balanced-accuracy graph.
 - **`scripts/download_raise1k.py`** — downloads the RAISE-1k real-image dataset from its official package using a supplied CSV.
 - **`scripts/fetch_zip_subset.py`** — retrieves a random sample from a remote ZIP using HTTP range requests rather than downloading the whole archive.
 - **`utils/datasets.py`** — dataset registry, folder scanning, image loading, and balanced per-class sampling. CIFAKE now maps to the local `dataset/image/training/CiFake` and `dataset/image/test/CiFake` folders.

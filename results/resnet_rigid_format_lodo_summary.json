@@ -1,0 +1,97 @@
+{
+  "experiment": "ResNet-18 leave-one-generator-out, DINOv2-matched squash224 evaluation",
+  "seed": 42,
+  "epochs": 8,
+  "test_images_per_generator": 1000,
+  "real_images_per_generator": 500,
+  "fake_images_per_generator": 500,
+  "generator_macro_mean_balanced_accuracy": 0.7224285714285715,
+  "generator_macro_mean_auroc": 0.8025237142857142,
+  "note": "Real validation images are shared across GenImage generator folders, so the macro mean is descriptive across generator holdouts, not seven independent real-image samples.",
+  "runs": [
+    {
+      "generator": "imagenet_ai_0419_biggan",
+      "balanced_accuracy": 0.757,
+      "auroc": 0.8685440000000001,
+      "accuracy": 0.757,
+      "best_epoch": 8,
+      "seen_validation_balanced_accuracy": 0.8300000000000001,
+      "threshold": 0.08804510533809662,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_ai_0419_biggan/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_ai_0419_biggan/test_scores.csv"
+    },
+    {
+      "generator": "imagenet_ai_0419_vqdm",
+      "balanced_accuracy": 0.553,
+      "auroc": 0.632744,
+      "accuracy": 0.553,
+      "best_epoch": 7,
+      "seen_validation_balanced_accuracy": 0.8978333333333334,
+      "threshold": 0.19666612148284912,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_ai_0419_vqdm/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_ai_0419_vqdm/test_scores.csv"
+    },
+    {
+      "generator": "imagenet_ai_0424_sdv5",
+      "balanced_accuracy": 0.798,
+      "auroc": 0.878224,
+      "accuracy": 0.798,
+      "best_epoch": 6,
+      "seen_validation_balanced_accuracy": 0.8684166666666666,
+      "threshold": 0.2559485137462616,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_ai_0424_sdv5/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_ai_0424_sdv5/test_scores.csv"
+    },
+    {
+      "generator": "imagenet_ai_0424_wukong",
+      "balanced_accuracy": 0.796,
+      "auroc": 0.8755,
+      "accuracy": 0.796,
+      "best_epoch": 6,
+      "seen_validation_balanced_accuracy": 0.8705,
+      "threshold": 0.2762976586818695,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_ai_0424_wukong/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_ai_0424_wukong/test_scores.csv"
+    },
+    {
+      "generator": "imagenet_ai_0508_adm",
+      "balanced_accuracy": 0.616,
+      "auroc": 0.689066,
+      "accuracy": 0.616,
+      "best_epoch": 6,
+      "seen_validation_balanced_accuracy": 0.864,
+      "threshold": 0.3331235945224762,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_ai_0508_adm/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_ai_0508_adm/test_scores.csv"
+    },
+    {
+      "generator": "imagenet_glide",
+      "balanced_accuracy": 0.9039999999999999,
+      "auroc": 0.9705560000000002,
+      "accuracy": 0.904,
+      "best_epoch": 5,
+      "seen_validation_balanced_accuracy": 0.8503333333333334,
+      "threshold": 0.4051290452480316,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_glide/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_glide/test_scores.csv"
+    },
+    {
+      "generator": "imagenet_midjourney",
+      "balanced_accuracy": 0.633,
+      "auroc": 0.703032,
+      "accuracy": 0.633,
+      "best_epoch": 5,
+      "seen_validation_balanced_accuracy": 0.8576666666666666,
+      "threshold": 0.43846720457077026,
+      "test_images": 1000,
+      "checkpoint": "model/ResNet/Frozen Resnet model/checkpoints/resnet_rigid_format_holdout_imagenet_midjourney/best_model.pt",
+      "scores_csv": "results/resnet_rigid_format_holdout_imagenet_midjourney/test_scores.csv"
+    }
+  ]
+}
