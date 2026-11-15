@@ -236,6 +236,43 @@ This choice of layer is a post-hoc observation, not something tuned. Clean seen-
 
 Its weak spot is clean ADM. There it picks a block-12 probe that scores 97% on the seen generators but only 67% on ADM, which is the same seen-generator overfitting at a cost of 9.5 pp. All new probes use one MLP seed; A4 puts the seed spread of 7-generator means at 0.2–0.4 pp.
 
+#### Fine-tuned ResNet-18 vs frozen DINOv2, and their combination
+
+These use Tyrone's seven leave-one-generator-out ResNet-18 checkpoints (`resnet_rigid_format_holdout_<generator>/best_model.pt`, not in git). The split, seed and test images are the same as in every DINOv2 run, so the scores pair image by image.
+
+`python scripts/resnet_checkpoint_scores.py --checkpoints "<folder>/checkpoints"` scores every test image with all seven checkpoints, under the eight conditions and two test-time views:
+
+- **squash224**: `Resize((224, 224))`, the view in Tyrone's published results.
+- **crop**: `Resize(256)` + `CenterCrop(224)`, the view DINOv2 sees.
+
+The images are about 57,000 in all, taking about 20 min on an M-series Mac. The scores are stored as 9 MB in `results/resnet_scores/`.
+
+`python scripts/resnet_dinov2_comparison.py` writes `results/resnet_dinov2_comparison.md`. Applying Tyrone's own checkpoint thresholds reproduces his published balanced accuracy on every holdout and condition to within 0.1 pp. Mean balanced accuracy over the 7 holdouts:
+
+| Method | Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG | Format 256+q96 | Seen val |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| ResNet-18, squash224 (Tyrone's) | 72.2% | 63.3% | 66.4% | 51.7% | 52.4% | 59.0% | 71.5% | 86.3% |
+| ResNet-18, crop | 69.9% | 59.4% | 56.5% | 51.9% | 50.6% | 54.9% | 65.7% | 81.6% |
+| DINOv2 clean + diff MLP (main runs) | **85.3%** | 74.7% | 81.5% | **74.1%** | **61.6%** | 68.1% | **82.5%** | 89.9% |
+| Ensemble: ResNet squash + DINOv2 | 83.3% | 71.9% | 78.5% | 57.6% | 56.0% | 67.1% | 80.5% | 93.5% |
+| Router over the rows above | 83.0% | **75.8%** | **83.2%** | 73.3% | 61.3% | **71.9%** | 82.4% | |
+
+**ResNet vs DINOv2.** The frozen DINOv2 probe beats the fine-tuned ResNet by 9–22 pp in every condition, all significant. That includes the format-matched test, so the gap is not a file-format effect. ResNet is biased towards "real" on clean and JPEG images (real recall 86–88%, generated recall 39–58%). After downsampling it flips and calls almost everything generated (real recall 11–20% at 64 and 32 px). It also fails on two whole generators: VQDM at 55% and ADM at 62%, where DINOv2 gets 86% and 77%.
+
+**squash224 vs crop.** On the same checkpoints, squash224 beats the centre crop by 2.3 pp on clean images and by 9.9 pp at 128 px. It is closer to training, where `RandomResizedCrop` (scale 0.75–1) shows most of the image.
+
+The earlier GLIDE comparison, 90.4% (squash) vs 85.1% (crop), set two different training runs against each other. Each picked its best epoch on its own validation view: epoch 5 vs epoch 8. On one checkpoint the GLIDE gap is 1.2 pp (90.4% vs 89.2%). The test-time view also changes which epoch is selected.
+
+**Format.** ResNet with squash224 loses only 0.7 pp (not significant) on the format-matched test. With the centre crop it loses 4.3 pp, and DINOv2 loses 2.8 pp. Its weaker generalisation is therefore not inflated by the format shortcut.
+
+**Combining them hurts.** Averaging the standardised logits of ResNet and the DINOv2 MLP is worse than DINOv2 alone in every condition: −2.0 pp clean and −16.5 pp at 64 px. The worst cases are VQDM, ADM and Midjourney, where ResNet fails.
+
+Seen-generator validation points the wrong way. It ranks the ensemble highest (93.5%, against 89.9% for DINOv2), because the fine-tuned ResNet fits the seen generators well (86.3% on their validation images vs 72.2% on unseen ones). The router trusts that signal and picks the ensemble almost everywhere. It therefore loses 2.3 pp on clean images and gains only under JPEG and 128 px (+1.0 to +3.8 pp).
+
+This is the same lesson as the early DINOv2 blocks: accuracy on the seen generators measures fit to those generators, not generalisation, even on degraded images.
+
+With `--backbones`, the ResNet methods join the 22 frozen-feature probes in the router's pool (`results/resnet_dinov2_comparison_with_backbones.md`). In every condition the 22 probes cover, the router never picks a ResNet method, so its results match the earlier router exactly (79.2% mean over the six standard conditions). Format q96 is the exception, because only the rows above have scores there. Fine-tuned ResNet-18 adds nothing to the frozen-feature detectors.
+
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
 Update the README and report tables when adding a new holdout or experiment. Result summaries, per-image scores, and training histories are small text files and can be published to GitHub. Model checkpoints are excluded by `.gitignore` because each is about 43 MB; the image dataset and local virtual environment should also remain outside the repository. The score CSV paths are dataset-relative and do not expose local machine paths.
@@ -252,6 +289,8 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/format_alignment_experiments.py` — format-matched test set (E1) and format-aligned training (E2); embeds the new format conditions.
 - `scripts/backbone_features.py` — frozen CLIP ViT-L/14 and intermediate DINOv2 layer features for every needed image (embedding only).
 - `scripts/backbone_comparison.py` — probes, fusion, cross-backbone router and family holdout on those features.
+- `scripts/resnet_checkpoint_scores.py` — scores every test image with the seven fine-tuned ResNet-18 checkpoints (squash224 and centre-crop views).
+- `scripts/resnet_dinov2_comparison.py` — ResNet-18 vs DINOv2, their ensemble and router, from those scores.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.
 - `RESNET_EXPERIMENT.md` — concise experimental setup and ablation notes.
