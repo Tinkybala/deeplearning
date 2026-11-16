@@ -424,6 +424,30 @@ The metadata buckets are almost class-neutral. The exceptions are 133 low-qualit
 
 The block-20 MLP stays the exported detector: it uses a single block and was chosen before this test. The 12–24 concatenation is an equally valid alternative, about 1 pp better after the fact.
 
+#### Held-out degradations: robustness to transformations never seen in training
+
+The augmented detectors were trained with JPEG quality 30–95 and downscaling to 32, 64 or 128 px, and the six standard test conditions use the same kinds of operation. So they show robustness to degradations seen in training. `python scripts/unseen_degradation_experiments.py` tests six degradations outside that training distribution, applied to every test image (about 42,000 images embedded with DINOv2 and DINOv3, about 2 h on an M-series Mac):
+- **JPEG Q20**: below the trained quality range.
+- **WebP Q50**: another codec.
+- **Gaussian blur** (radius 1 px) and **Gaussian noise** (sigma 5/255): never used in training.
+- **Resize 48 / 96**: sizes between the trained ones.
+
+`--check` first confirms that the pipeline reproduces the cached clean features (to within float16 rounding), and on the standard conditions all four detectors reproduce their earlier numbers exactly. Mean balanced accuracy over the 7 holdouts (`results/unseen_degradation_experiments.md`):
+
+| Detector | JPEG Q20 | WebP Q50 | Blur | Noise | Resize 48 | Resize 96 | Mean | AUROC |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| DINOv2 final layer (block 24) MLP, clean | 74.0% | 77.0% | 80.4% | 78.3% | 71.6% | 77.3% | 76.4% | 0.852 |
+| DINOv2 block-20 MLP, clean | 67.2% | **80.9%** | 87.3% | 79.6% | 74.1% | 83.7% | 78.8% | 0.901 |
+| **Final detector** (block 20, clean + aug.) | 80.8% | 78.2% | 87.8% | 80.9% | 77.2% | 84.9% | **81.6%** | 0.912 |
+| Fusion with DINOv3 block 24 | **83.8%** | 80.7% | **90.6%** | **86.0%** | **80.7%** | **87.7%** | **84.9%** | **0.942** |
+
+**The final detector's robustness carries over to degradations it never saw.**
+- It averages 81.6% on the held-out degradations, as much as on the seen kinds (81.3%).
+- That is +5.2 pp over the final-layer MLP and +2.8 pp over the same block-20 probe trained on clean images (both significant), so augmentation helps beyond the operations it imitated.
+- The largest gain is at JPEG Q20, +13.6 pp: the clean-trained probe calls almost every compressed fake real (generated recall 36%). Unseen sizes (+3.1, +1.2 pp) and noise (+1.3 pp) also improve; blur needs no augmentation (+0.5 pp, n.s.).
+
+**The exception is a new codec.** On WebP the final detector is 2.7 pp worse than the clean-trained probe: it calls 35% of WebP-compressed real photos generated. Its AUROC is unchanged (0.902 vs 0.903), so the codec shifts the scores rather than destroying the signal, the threshold drift seen before. The DINOv3 fusion is ahead on all six (+3.3 pp on average). The hardest cases are ADM under noise (59.8%) and Midjourney at JPEG Q20 (60.1%).
+
 #### Intermediate CLIP blocks, and CLIP + DINOv2
 
 The earlier backbone comparison used only CLIP's final embedding. These experiments ask whether CLIP's intermediate blocks behave like DINOv2's, and whether CLIP adds anything to the final detector.
@@ -652,6 +676,7 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/augmented_layer_selection.py` — every DINOv2 layer probe with augmented training, chosen by nested leave-one-generator-out.
 - `scripts/clip_layer_features.py`, `scripts/clip_layer_experiments.py` — intermediate CLIP ViT-L/14 blocks (or DINOv3 ViT-L/16 blocks with `--backbone dinov3`) for clean and augmented training images and all test conditions; their probes and their fusion with DINOv2, chosen by nested leave-one-generator-out.
 - `scripts/native_tile_features.py`, `scripts/native_tile_experiments.py` — DINOv2 features at native resolution (centre crop and tile mean) compared with the downscaled crop.
+- `scripts/unseen_degradation_experiments.py` — robustness to six degradations never used in training (JPEG Q20, WebP, blur, noise, resize 48/96), for the final detector and its baselines.
 - `scripts/size_matched_tile_experiments.py` — the size-matched control: every image resized to shorter side 448 before tiling (`native_tile_features.py --size 448`).
 - `models/final_detector_dinov2_l20_mlp.pt` — the exported final detector (1 MB).
 - `models/fusion_detector_dinov2_l20_dinov3_l24.pt` — the exported DINOv2 + DINOv3 fusion (2 MB).

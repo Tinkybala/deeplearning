@@ -26,6 +26,7 @@ This document links the experiments on all three branches into one argument: wha
 | 9. Final detector (S) | Combine block 20 with augmented training; can single images match the batch threshold? | Augmentation works on block 20: +4.6 pp. One fixed threshold gives **81.3%** on single images; a batch threshold gives 82.9%. | Can another backbone or more pixels beat it? |
 | 10. CLIP blocks and native resolution (S) | Do intermediate CLIP blocks or native-resolution tiles help? | CLIP block 16 is 92% clean but reads JPEG as "real" (59–67% format-matched); fusion adds about 1 pp. Native tiles give +4.4 pp clean, but only 1–3 pp survive size matching, and almost none of that under format matching. | DINOv3 as a stronger single backbone. |
 | 11. DINOv3 (S) | Does DINOv2's successor help, without a shortcut? | On GenImage, yes. Fusing the final detector with DINOv3 block 24 is picked in 7 of 7 folds: **84.4%** mean (+3.1 pp), better in every condition, and +3.1 pp on the format-matched test. On CIFAKE (32 px) it is worse: 70.7% vs 76.5%. | Test both on full-resolution external sets before choosing. |
+| 12. Held-out degradations (S) | Is the final detector robust to degradations never seen in training? | Mostly. On JPEG Q20, WebP, blur, noise and unseen sizes it averages **81.6%**, +5.2 pp over the final-layer probe and +2.8 pp over clean training; a new codec (WebP) shifts its threshold (−2.7 pp). | Full-resolution external data; codec-diverse augmentation. |
 
 (M = Michael, T = Tyrone, S = Seunghwan)
 
@@ -218,6 +219,22 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - The fusion is worse: 70.7% (AUROC 0.835). The DINOv3 head alone reaches only AUROC 0.709. The fusion's threshold also drifts: just 52% of real photos are called real, and a label-free threshold brings it back to 75.5%.
 
 **Takeaway.** On GenImage, a better foundation model helps where a different one (CLIP) or more pixels did not: the gain is broad, consistent across folds and not a format shortcut. But on the first dataset outside GenImage the ranking reverses. GenImage-only selection, however careful, still selects for GenImage. The final detector stays the DINOv2 block-20 MLP until the fusion also wins on full-resolution external sets.
+
+---
+
+## 12. Degradations never seen in training (Seunghwan)
+
+**Rationale.** The augmented detectors were trained with JPEG quality 30–95 and downscaling to 32, 64 or 128 px, and the standard test conditions use the same operations. Robustness to *new* degradations had not been shown.
+
+**Test** (`results/unseen_degradation_experiments.md`). Six held-out degradations on every test image: JPEG Q20, WebP Q50, Gaussian blur, Gaussian noise, and downscaling to 48 or 96 px.
+
+**Findings.**
+- **The final detector holds up:** 81.6% mean over the six, as much as on the seen kinds (81.3%). That is +5.2 pp over the final-layer probe and +2.8 pp over the same block-20 probe trained on clean images.
+- **Augmentation helps beyond what it imitated.** JPEG Q20 gains +13.6 pp; unseen sizes and noise gain 1–3 pp; blur needs no help.
+- **A new codec is the exception.** WebP costs 2.7 pp against clean training: real photos are called generated, while AUROC is unchanged, so it is a threshold shift.
+- The DINOv3 fusion is ahead on all six (+3.3 pp).
+
+**Takeaway.** The approach generalises across degradation strength and size, and only partly across codecs; augmenting with several codecs is the obvious next step.
 
 ---
 
