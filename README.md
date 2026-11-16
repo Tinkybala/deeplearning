@@ -569,7 +569,7 @@ Difference of the nested pick from the final detector (pp; * = paired bootstrap 
 - DINOv3's training set is web-scale and not public. If it contains images from these generators, the gain would partly be memory. DINOv2's LVD-142M carries the same risk on a smaller scale.
 - The fusion needs two ViT-L passes per image, about twice the cost of the final detector.
 
-The exported final detector is unchanged (DINOv2 block 20 MLP). The fusion with DINOv3 block 24 is the strongest candidate to replace it.
+The fusion with DINOv3 block 24 is the strongest candidate to replace the final detector. It is exported beside it (next section) so that both can be tested on other datasets.
 
 #### Exported final detector, for tests on other datasets
 
@@ -589,6 +589,13 @@ It reports, overall and per folder:
 - real and generated recall.
 
 Results go to `results/external/<name>.{md,json}`, with per-image scores in a CSV. The first run downloads DINOv2 ViT-L/14. On 128 GenImage test images, the script's P(real) matches the exported model applied to the cached features to within 5 × 10⁻⁷.
+
+**The DINOv2 + DINOv3 fusion is exported too.** `python scripts/export_final_detector.py --detector fusion` saves `models/fusion_detector_dinov2_l20_dinov3_l24.pt` (2 MB).
+- It holds the same DINOv2 block-20 MLP plus an MLP on DINOv3 block 24, fit on the same images.
+- Each head's logit is standardised on the calibration set, and the two are averaged.
+- The threshold on the fused score is calibrated as above: 97.1% balanced accuracy on the calibration set, against 95.7% for the DINOv2 detector alone.
+
+`score_final_detector.py --fusion` scores with it, with the same reports. It also needs timm and DINOv3's weights, which timm downloads from the Hugging Face hub (DINOv3 License). On 140 GenImage test images, its scores match the cached features to within 2 × 10⁻⁷, and every decision agrees. The default `export_final_detector.py` still reproduces the DINOv2 detector byte for byte.
 
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
@@ -613,12 +620,13 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/nested_selection_experiments.py` — nested leave-one-generator-out choice of layer, probe and router.
 - `scripts/augmented_backbone_features.py` — block-wise DINOv2 features of the augmented training images (reproduces the cached augmentation exactly).
 - `scripts/final_detector_experiments.py` — the final detector: block-20 probes on augmented images with batch and single-image (metadata) thresholds.
-- `scripts/export_final_detector.py`, `scripts/score_final_detector.py` — train and save the final detector on all seven generators; score any folders of real and generated images with it.
+- `scripts/export_final_detector.py`, `scripts/score_final_detector.py` — train and save the final detector (or, with `--detector fusion`, the DINOv2 + DINOv3 fusion) on all seven generators; score any folders of real and generated images with either.
 - `scripts/augmented_layer_selection.py` — every DINOv2 layer probe with augmented training, chosen by nested leave-one-generator-out.
 - `scripts/clip_layer_features.py`, `scripts/clip_layer_experiments.py` — intermediate CLIP ViT-L/14 blocks (or DINOv3 ViT-L/16 blocks with `--backbone dinov3`) for clean and augmented training images and all test conditions; their probes and their fusion with DINOv2, chosen by nested leave-one-generator-out.
 - `scripts/native_tile_features.py`, `scripts/native_tile_experiments.py` — DINOv2 features at native resolution (centre crop and tile mean) compared with the downscaled crop.
 - `scripts/size_matched_tile_experiments.py` — the size-matched control: every image resized to shorter side 448 before tiling (`native_tile_features.py --size 448`).
 - `models/final_detector_dinov2_l20_mlp.pt` — the exported final detector (1 MB).
+- `models/fusion_detector_dinov2_l20_dinov3_l24.pt` — the exported DINOv2 + DINOv3 fusion (2 MB).
 - `EXPERIMENT_STORY.md` — how all experiments on the three branches fit together.
 - `REPORT.md` — detailed, ongoing experiment report.
 - `PROJECT_STRUCTURE.md` — folder tree and guide to the code, configs, notebooks, and result files.

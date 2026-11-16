@@ -235,5 +235,5 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **Cross-dataset test of the final detector.** `models/final_detector_dinov2_l20_mlp.pt` (trained on all 7 GenImage generators) and `scripts/score_final_detector.py` are ready to run on Michael's COCO, Unsplash, FFHQ/LSUN and Synthbuster sets.
 - **Further models.**
   - Native-resolution tiles trained with random rescaling, so that size and resampling carry no label (section 10).
-  - The DINOv2 + DINOv3 block-24 fusion (section 11) is not yet exported; it should be, and tested on other datasets beside the current final detector. SigLIP 2 has not been tried.
+  - The DINOv2 + DINOv3 block-24 fusion (section 11) is exported as `models/fusion_detector_dinov2_l20_dinov3_l24.pt` (`score_final_detector.py --fusion`). It should be tested on other datasets beside the current final detector. SigLIP 2 has not been tried.
   - Any new backbone must also pass the format-matched test, which CLIP's intermediate blocks failed.
