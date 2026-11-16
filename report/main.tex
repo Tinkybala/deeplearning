@@ -9,7 +9,7 @@
 \setmainfont{Arial}
 \setmathfont{FiraMath-Regular.otf}
 \usepackage{setspace}
-\setstretch{1.05}
+\setstretch{1.1}
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -32,11 +32,11 @@
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
 \setlength{\intextsep}{8pt plus 2pt minus 2pt}
-\setlist{itemsep=1pt,topsep=3pt,parsep=0pt}
+\setlist{itemsep=2pt,topsep=3pt,parsep=0pt}
 \titlespacing*{\section}{0pt}{10pt plus 2pt}{4pt}
 \titlespacing*{\subsection}{0pt}{8pt plus 2pt}{3pt}
 \titlespacing*{\paragraph}{0pt}{4pt}{0.6em}
-\setlength{\parskip}{2pt}
+\setlength{\parskip}{3pt}
 \newcommand{\best}[1]{\textbf{#1}}
 \newcommand{\pp}{\,pp}
 \newcommand{\why}[1]{\noindent\textit{\color{ntublue}Motivation.} #1\par}
@@ -92,13 +92,15 @@ A detector of AI-generated images is useful only if it recognises images from ge
 \section{Introduction}
 Image generators improve faster than detectors can be retrained, so a practical detector must recognise images from \emph{unseen} generators, and must do so on images as they are shared: re-encoded as JPEG and resized. We ask two linked questions: \textbf{(1)} can a detector trained on known generators recognise a generator it has never seen, and \textbf{(2)} does it stay accurate after compression and resizing?
 
-Both are easy to answer too optimistically. Testing on the training generators measures fit, not generalisation; a benchmark whose classes differ in file format or size can be solved without looking at the content; and a model chosen by its test score is tuned to that test. Our contributions address each:
+Both are easy to answer too optimistically. Testing on the training generators measures fit, not generalisation; a benchmark whose classes differ in file format or size can be solved without looking at the content; and a model chosen by its test score is tuned to that test.
+
+\textbf{Our approach in brief.} We keep a large pretrained vision model (DINOv2) frozen, read the image representation from an intermediate layer rather than the last one, and train only a small classifier on top, using training images that are compressed and resized at random. On a generator never seen in training it reaches 88.7\% balanced accuracy on clean images and 81.3\% averaged over six degradations, against 72.2\% and 60.8\% for a fine-tuned ResNet-18, and it keeps 81.6\% on six further degradations it never saw. Our contributions:
 \begin{itemize}
   \item \textbf{A shared, strict protocol} (Section~\ref{sec:protocol}): every detector from three branches of work is compared on the same leave-one-generator-out splits, thresholds, degradations and test images, with paired bootstrap intervals and nested model selection.
   \item \textbf{An approach that generalises and is robust} (Sections~\ref{sec:res-robust}--\ref{sec:res-heldout}): an MLP on DINOv2's block-20 token trained on degraded images, beating a fine-tuned ResNet-18 by 20.5\pp\ on average, including on degradations never seen in training.
   \item \textbf{Shortcut controls} (Sections~\ref{sec:res-stress}, \ref{sec:res-negative}): format-, size- and family-matched tests that separate genuine gains from benchmark artefacts, and a cross-dataset test on CIFAKE (Section~\ref{sec:res-cifake}).
 \end{itemize}
-The experiments form a chain in which each result prompted the next; Section~\ref{sec:path} gives an overview.
+Section~\ref{sec:protocol} describes the data and evaluation protocol, Section~4 the models and techniques, Section~5 the results, and Sections~6--7 what they mean. The experiments form a chain in which each result prompted the next; Section~\ref{sec:path} gives an overview of that chain before the detailed results.
 
 % ================================================================== 2
 \section{Related Work}
@@ -108,7 +110,7 @@ The experiments form a chain in which each result prompted the next; Section~\re
 \section{Data and Evaluation Protocol}\label{sec:protocol}
 
 \subsection{Data, splits and test conditions}
-We use seven GenImage generators (Table~\ref{tab:generators}), each with 2,000 training and 500 validation images prompted with ImageNet classes; the real images are ImageNet photos. In each of seven folds one generator is held out entirely. With seed 42, the probe or network is \emph{fit} on 12,000 images of the six seen generators and 1,600 real photos; \emph{seen validation} (3,000 seen-generator images, 400 reserved real photos) sets the checkpoint and the decision threshold, which maximises balanced accuracy and then stays fixed; the \emph{test} set is the held-out generator's 500 images and 500 real photos.
+We use seven GenImage generators (Table~\ref{tab:generators}), each with 2,000 training and 500 validation images prompted with ImageNet classes; the real images are ImageNet photos. In each of seven folds one generator is held out entirely. With seed 42, the probe or network is \emph{fit} on 12,000 images of the six seen generators and 1,600 real photos; \emph{seen validation} (3,000 seen-generator images, 400 reserved real photos) sets the checkpoint and the decision threshold, which maximises balanced accuracy and then stays fixed; the \emph{test} set is the held-out generator's 500 images and 500 real photos. Holding out a whole generator mimics deployment, where a new generator appears that no detector was trained on. The threshold is fixed in advance because a detector applied to single images cannot see test labels; it is never re-tuned per test condition unless stated.
 
 \begin{table}[h]
 \centering\footnotesize
@@ -126,7 +128,7 @@ Midjourney & proprietary (v5) & commercial service; architecture not public & 10
 \end{tabularx}
 \end{table}
 
-Each test image is evaluated under six \textbf{standard conditions}, applied before the shared preprocessing (shorter side 256, centre crop 224): clean; JPEG quality 50; bicubic downscaling of the shorter side to 128, 64 or 32 pixels and back to 256; and downscaling to 128 plus JPEG 50 (Figure~\ref{fig:examples}). A \textbf{format-matched} condition (Format 256+q96) puts both classes through the same pipeline (shorter side 256, JPEG quality 96), removing the PNG/JPEG difference.
+Each test image is evaluated under six \textbf{standard conditions}, applied before the shared preprocessing (shorter side 256, centre crop 224): clean; JPEG quality 50; bicubic downscaling of the shorter side to 128, 64 or 32 pixels and back to 256; and downscaling to 128 plus JPEG 50 (Figure~\ref{fig:examples}). They imitate what happens to images shared online, where platforms re-encode uploads as JPEG and shrink them, often more than once; downscaling to 32 pixels is an extreme case that removes almost all fine detail. A \textbf{format-matched} condition (Format 256+q96) puts both classes through the same pipeline (shorter side 256, JPEG quality 96), removing the PNG/JPEG difference. It answers a specific question: does a detector look at the image content, or merely at how the file was compressed?
 
 \begin{figure}[h]
 \centering
@@ -135,7 +137,7 @@ Each test image is evaluated under six \textbf{standard conditions}, applied bef
 \end{figure}
 
 \subsection{Metrics and model selection}
-\textbf{Balanced accuracy} (BA, the mean of real and generated recall at the fixed threshold; 50\% is chance) is the main metric; \textbf{AUROC}, the probability that a random real photo outscores a random generated image, measures ranking regardless of the threshold. Results are averaged over the seven held-out generators. Two detectors are compared with a \textbf{paired, class-stratified bootstrap} (2,000 resamples of each fold's test images); a difference is significant (*) when its 95\% interval excludes zero. The folds share their real test photos, so they are not independent samples.
+\textbf{Balanced accuracy} (BA, the mean of real and generated recall at the fixed threshold; 50\% is chance) is the main metric; \textbf{AUROC}, the probability that a random real photo outscores a random generated image, measures ranking regardless of the threshold. Comparing the two separates two kinds of failure: if AUROC stays high while BA falls, the detector still ranks images correctly and only its threshold is wrong; if both fall, the information needed to tell the classes apart has been lost. Results are averaged over the seven held-out generators. Two detectors are compared with a \textbf{paired, class-stratified bootstrap} (2,000 resamples of each fold's test images); a difference is significant (*) when its 95\% interval excludes zero. The folds share their real test photos, so they are not independent samples.
 
 Choosing a model by its test score would leak the held-out generator into the design, and choosing it on seen validation rewards fitting the seen generators. We therefore use \textbf{nested leave-one-generator-out}~\cite{varma2006bias} (Figure~\ref{fig:protocol}): inside each outer fold, each candidate is refit with each seen generator held out in turn and scored on it; the candidate with the best mean inner score over the six conditions is then tested once on the outer generator.
 
@@ -171,11 +173,19 @@ Choosing a model by its test score would leak the held-out generator into the de
 \paragraph{Backbones.}
 \textbf{ResNet-18}~\cite{he2016resnet} is an 18-layer convolutional network with residual (skip) connections; pretrained on ImageNet, it is \emph{fine-tuned} end to end (AdamW, learning rate $2\times10^{-4}$, cosine schedule, class-weighted cross-entropy, 8 epochs, random resized crops). A \textbf{Vision Transformer} (ViT) cuts an image into 14- or 16-pixel patches, embeds each as a token, adds a \emph{CLS} token and passes them through a stack of transformer blocks (24 for the ViT-L models here, about 300M parameters); the CLS output after any block summarises the image at that depth, early blocks keeping more low-level detail. \textbf{DINOv2}~\cite{oquab2024dinov2} is a ViT-L/14 trained without labels by self-distillation (a student matches a teacher on different crops of an image) on 142 million images; \textbf{DINOv3}~\cite{simeoni2025dinov3} is its successor (ViT-L/16, 1.7 billion images); \textbf{CLIP}~\cite{radford2021clip} is a ViT-L/14 trained contrastively on 400 million image--text pairs. The three ViTs are used \emph{frozen}: images are resized (shorter side 256), centre-cropped to 224, and the layer-normed CLS token of a chosen block is the feature.
 
+\paragraph{Why frozen features, and why an intermediate block.}
+Fine-tuning a whole network on 13,600 images from six generators lets it memorise those generators' artefacts, which then fail to transfer. A frozen backbone keeps a general-purpose feature space, and only a small classifier adapts. Which layer to read matters: a network's last layers encode \emph{what} an image shows, which is the same for a real and a generated dog, whereas traces of \emph{how} it was made (texture statistics, upsampling patterns) are more likely to survive in intermediate layers. Too early a layer, however, captures fragile pixel-level detail that compression destroys. We therefore compare blocks 8 to 24.
+
 \paragraph{Detectors.}
 \textbf{RIGID}~\cite{he2024rigid} is training-free: it adds Gaussian noise ($\lambda = 0.05$) to an image and scores the cosine similarity of the clean and noisy DINOv2 embeddings, assuming real photos are more stable. A \textbf{probe} is a small classifier trained on frozen features: logistic regression (L2, class-balanced) or an \textbf{MLP} ($1024 \to 256$, GELU, dropout 0.3, $\to 1$; full-batch AdamW, class-balanced cross-entropy, early stopping). Only the probe is trained, so the backbone cannot overfit the training generators. The main runs' probe uses the final layer's CLS token plus its change under RIGID's noise (\emph{clean + diff}). \textbf{Anomaly detection} models only real photos and flags images far from them (Mahalanobis or $k$-nearest-neighbour distance).
 
 \paragraph{Robustness techniques.}
-\textbf{Degradation augmentation} applies JPEG compression (quality 30--95) and downscaling (to 32, 64 or 128 pixels), each with probability 0.5, to training images; \emph{clean + augmented} training uses both versions of every image. \textbf{Intermediate blocks} read the CLS token after block 8, 12, 16, 20 or 24. \textbf{Fusion} averages two detectors' logits after standardising each on clean seen validation. A \textbf{router} picks a probe and threshold per degradation type, which it must know or predict. A \textbf{label-free threshold} is fitted to an unlabelled test batch: the crossing point of a two-component Gaussian mixture on its scores.
+\begin{itemize}
+  \item \textbf{Degradation augmentation} applies JPEG compression (quality 30--95) and downscaling (to 32, 64 or 128 pixels and back), each with probability 0.5, to training images, so that the classifier learns cues that survive them. \emph{Clean + augmented} training uses both the clean and the degraded version of every image.
+  \item \textbf{Fusion} combines two detectors with different errors. Each detector's logit $s_i$ is standardised on clean seen validation, $z_i = (s_i - \mu_i)/\sigma_i$, and the fused score is $\tfrac12(z_1 + z_2)$, so that neither detector dominates because of its scale.
+  \item A \textbf{router} picks a probe and threshold per degradation type; it must know or predict how each test image was degraded.
+  \item A \textbf{label-free threshold} adapts to a batch of unlabelled test images: a mixture of two Gaussians is fitted to their scores, and the threshold is placed where the two components cross. It helps when degradation shifts all scores but leaves the classes separable.
+\end{itemize}
 
 \paragraph{Our approach: the final detector.}
 The final detector (Figure~\ref{fig:pipeline}) is the block-20 MLP trained on clean + augmented images of the seen generators, with one threshold from clean seen validation. It needs a single image and no knowledge of how the image was degraded.
@@ -202,40 +212,27 @@ The final detector (Figure~\ref{fig:pipeline}) is the block-20 MLP trained on cl
 \section{Results}
 
 \subsection{Overview: the research path}\label{sec:path}
-The experiments were not a pre-planned grid: each answered a question raised by the previous result, either testing whether a gain was real or fixing the weakness the last step exposed (Table~\ref{tab:path}). Each subsection below starts with what motivated it and ends with what it led to.
-
-\begin{table}[h]
-\centering\footnotesize
-\caption{The research path. M = Michael Yip Hoi Weng, T = Tyrone Tiang Jin Shen, S = Choi Seunghwan.}\label{tab:path}
-\renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.1cm}@{}}
-\toprule
-Step & Question & Answer & Led to \\
-\midrule
-1. RIGID, probes (M) \S\ref{sec:res-rigid} & Can a frozen model detect fakes without training? & Sometimes (AUROC 0.96--0.99 on FFHQ, $\approx$0.5 on COCO); a probe helps within a dataset. & Train on fakes; measure generalisation under control. \\
-2. ResNet vs DINOv2 (T, S) \S\ref{sec:res-baselines} & Fine-tuned CNN or frozen features? & ResNet 72.2\% clean; DINOv2 MLP 85.3\%, ahead by 9--22\pp. & Is 85\% real? \\
-3. Stress tests (S) \S\ref{sec:res-stress} & Family leakage, format shortcut, seeds? & Each costs a little; about 84\% survives. & Degradation is the weakness. \\
-4. Robustness (S, T) \S\ref{sec:res-robust} & Routing, augmentation, better layer? & Block 20 helps most; a 22-probe router 79.2\%. & Were the choices made honestly? \\
-5. Nested selection (S) \S\ref{sec:res-nested} & Does seen validation pick well? & No; nested selection confirms block 20. & Features or threshold? \\
-6. Thresholds (S) \S\ref{sec:res-threshold} & How much loss is threshold drift? & For block 20, most: label-free 80.2\%. & Fix the drift in training. \\
-7. Final detector (S) \S\ref{sec:res-final} & Block 20 + augmentation, one threshold? & 81.3\% on single images, +20.5\pp\ over ResNet. & Robust to unseen degradations? \\
-8. Held-out degradations (S) \S\ref{sec:res-heldout} & Degradations never trained on? & Mostly: 81.6\% on six unseen degradations; WebP shifts the threshold. & Can another backbone or more pixels beat it? \\
-9. CLIP, native res. (S) \S\ref{sec:res-negative} & Intermediate CLIP blocks, native-resolution tiles? & Both lean on format or size shortcuts. & A stronger self-supervised backbone. \\
-10. DINOv3 (S) \S\ref{sec:res-dinov3} & DINOv2's successor? & Fusion 84.4\% (+3.1\pp), no shortcut. & Test outside GenImage. \\
-11. CIFAKE (S) \S\ref{sec:res-cifake} & Does the ranking hold elsewhere? & No: final 76.5\%, fusion 70.7\%. & Keep the final detector. \\
-\bottomrule
-\end{tabularx}
-\end{table}
+The experiments were not a pre-planned grid: each answered a question raised by the previous result, either testing whether an apparent gain was real or fixing the weakness the last step had exposed. Appendix Table~\ref{tab:path} summarises every step; in brief:
+\begin{itemize}
+  \item A training-free detector proved unreliable across sources (\S\ref{sec:res-rigid}), so we trained on generated images and compared a fine-tuned CNN with frozen features under one protocol (\S\ref{sec:res-baselines}).
+  \item The frozen-feature result survived stress tests for leakage and shortcuts (\S\ref{sec:res-stress}) but broke under degradation, which led to work on robustness (\S\ref{sec:res-robust}).
+  \item The best robust choices had been spotted on the test generators, so we re-made them with nested selection (\S\ref{sec:res-nested}). It confirmed an intermediate layer and pointed at the decision threshold as the remaining weakness (\S\ref{sec:res-threshold}).
+  \item Removing that weakness in training gave the final detector (\S\ref{sec:res-final}), which we then tested on degradations it never saw (\S\ref{sec:res-heldout}).
+  \item Finally we asked whether another backbone, more pixels or a newer model could do better (\S\ref{sec:res-negative}, \S\ref{sec:res-dinov3}), and whether the best GenImage detector also wins on another dataset (\S\ref{sec:res-cifake}).
+\end{itemize}
+Each subsection below opens with what motivated it and closes with what it led to.
 
 \subsection{RIGID: strong on some sources, near chance on others}\label{sec:res-rigid}
-\why{A detector that needs no generated images cannot overfit the generators it was trained on.}
-Without training, RIGID reaches AUROC 0.957--0.990 on FFHQ (LDM, StyleGAN2) and 0.867 on Unsplash vs Stable Diffusion, but 0.49--0.59 on COCO with SD3, SD3.5 and Midjourney 6, and its score depends strongly on resolution and compression. A probe on clean + diff features reaches AUROC 0.90--0.93 on an unseen generator of the same dataset but only 0.65--0.76 on a different dataset (0.80--0.90 when trained on ImageNet and Synthbuster together). Real-only anomaly detection was no better than RIGID.
-\ledto{Supervision with generated images is needed, so generalisation to an unseen generator becomes the central risk, measured under the protocol of Section~\ref{sec:protocol}.}
+\why{A detector that needs no generated images cannot overfit the generators it was trained on, so a training-free method is the natural first try for unseen generators.}
+Without training, RIGID reaches AUROC 0.957--0.990 on FFHQ (LDM, StyleGAN2) and 0.867 on Unsplash vs Stable Diffusion, but only 0.49--0.59 on COCO with SD3, SD3.5 and Midjourney 6, which is chance level. Its signal, how far the embedding moves under noise, depends on image resolution and compression as much as on how the image was made: a sweep over preprocessing choices (squashing, cropping, native resolution, JPEG round trips) changed its scores substantially, so one threshold cannot serve all sources. A probe trained on clean + diff features fixes this within a dataset (AUROC 0.90--0.93 on an unseen generator) but reaches only 0.65--0.76 on a different dataset, or 0.80--0.90 when trained on ImageNet and Synthbuster together. Modelling only real photos (anomaly detection) was no better than RIGID.
+\ledto{The noise-stability signal is real but not universal, so supervision with generated images is needed. That makes generalisation to an unseen generator the central risk, which the protocol of Section~\ref{sec:protocol} measures under control.}
 
 \subsection{Fine-tuned ResNet-18 vs frozen DINOv2}\label{sec:res-baselines}
-\why{A standard supervised baseline sets the bar; running every detector on the same splits and images makes all later comparisons paired.}
-With GLIDE held out, the fine-tuned ResNet reaches 85.1\% clean but 56.7\% at JPEG Q50 and 50--51\% at 64 and 32 pixels; augmentation helps only the degradation it imitates (Appendix Table~\ref{tab:resnet}). Over all seven folds it averages 72.2\% clean (55.3\% on VQDM, 90.4\% on GLIDE) although it scores 86\% on the seen generators. A frozen DINOv2 MLP on clean + diff features reaches 85.3\% and beats it by 9--22\pp\ in every condition (Table~\ref{tab:main}); averaging the two is worse than DINOv2 alone. The ResNet's test-time view matters: squashing to 224$\times$224 beats centre-cropping by 2.3\pp\ clean, which explains its two GLIDE figures.
-\ledto{Fit to seen generators is not generalisation, a theme that recurs. Frozen features become the reference, and the 85.3\% headline is tested next.}
+\why{A standard supervised baseline sets the bar; running every detector on the same splits, thresholds and images makes all later comparisons paired, image by image.}
+With GLIDE held out, the fine-tuned ResNet reaches 85.1\% on clean images but 56.7\% at JPEG Q50 and 50--51\% at 64 and 32 pixels, and augmentation helps only the degradation it imitates (Appendix Table~\ref{tab:resnet}). Over all seven folds it averages 72.2\% clean, from 55.3\% on VQDM to 90.4\% on GLIDE, although it scores 86\% on the seen generators' validation images. Fine-tuning all its weights lets it learn the six training generators' particular artefacts: these transfer poorly to a new generator, and after downscaling, which removes them, it calls almost every image generated (real recall 11--20\% at 64 and 32 pixels).
+
+A frozen DINOv2 MLP on clean + diff features reaches 85.3\% clean and beats the ResNet by 9--22\pp\ in every condition, all significant (Table~\ref{tab:main}). Only its 263k-parameter probe is trained, on top of features learned from 142 million diverse images, so it has little capacity to memorise generators. Averaging the two models is worse than DINOv2 alone, because the ResNet's large errors on VQDM, ADM and Midjourney dominate. The ResNet's own test-time view matters too: squashing to 224$\times$224 beats centre-cropping by 2.3\pp, which explains its two different GLIDE figures.
+\ledto{Accuracy on the seen generators (86\%) overstated the ResNet's generalisation (72\%), a warning that recurs. Frozen features become the reference, and their 85.3\% headline is tested next.}
 
 \begin{table}[h]
 \centering\footnotesize
@@ -258,8 +255,12 @@ Fusion with DINOv3 block 24 (Section~\ref{sec:res-dinov3}) & \best{91.7} & \best
 
 \subsection{Stress tests of the headline}\label{sec:res-stress}
 \why{Before building on 85.3\%, rule out the obvious ways it could be inflated.}
-\textbf{Family leakage:} SD v1.5 and Wukong are both Stable Diffusion models; holding out each generator's whole family lowers the mean to 84.2\% ($-1.1$\pp). \textbf{Format shortcut:} every real photo is a JPEG and every generated image a PNG of one fixed size (Figure~\ref{fig:sizes}). On the format-matched test the MLP drops to 82.5\% ($-2.8$\pp), with generated recall falling from 83\% to 72\%: compressed fakes look real. Format-aligned training recovers 84.8\%. \textbf{Seeds:} over five seeds the standard deviation of the mean is 0.2--0.4\pp, and every key comparison keeps its sign.
-\ledto{About 84\% survives, and the format-matched test becomes a standard check. The real weakness is degradation: 74.7\% at JPEG Q50, 61.6\% at 32 pixels.}
+\begin{itemize}
+  \item \textbf{Family leakage.} Leave-one-generator-out overstates generalisation if a close relative of the test generator stays in training. SD v1.5 and Wukong are both Stable Diffusion models: removing the sibling costs 2.9--5.8\pp\ on them. ADM and GLIDE, both OpenAI pixel-diffusion models, do not help each other, so shared lineage does not guarantee shared artefacts. Holding out every generator's whole family lowers the mean to 84.2\% ($-1.1$\pp).
+  \item \textbf{Format shortcut.} Every real photo is a JPEG and every generated image a PNG of one fixed size (Figure~\ref{fig:sizes}), so a detector can learn ``compressed means real''. On the format-matched test the MLP drops to 82.5\% ($-2.8$\pp) and generated recall falls from 83\% to 72\%: once fakes are compressed like photos, more of them pass as real. Midjourney drops most (78.1\% $\to$ 68.6\%). Training on format-aligned images recovers 84.8\%, so about 2--3\pp\ of the headline is format, and the format-independent figure is about 84--85\%.
+  \item \textbf{Seed noise.} Over five training seeds the standard deviation of the seven-generator mean is 0.2--0.4\pp, and every key comparison keeps its sign on every seed.
+\end{itemize}
+\ledto{About 84\% survives, and the format-matched test becomes a standard check for every later detector. The real weakness is degradation: 74.7\% at JPEG Q50 and 61.6\% at 32 pixels.}
 
 \begin{figure}[h]
 \centering
@@ -268,49 +269,53 @@ Fusion with DINOv3 block 24 (Section~\ref{sec:res-dinov3}) & \best{91.7} & \best
 \end{figure}
 
 \subsection{Robustness: routing, augmentation and the layer}\label{sec:res-robust}
-\why{Different probes failed under different degradations, Tyrone's ablation suggested augmentation, and DINOv2's last layer may not be the best one to read.}
-A router choosing the probe per degradation type raises the six-condition mean from 74.2\% to 75.7\% (75.4\% with the type predicted from the image); clean + augmented training gives +1.7\pp\ with one detector. The \textbf{layer matters far more} (Figure~\ref{fig:layers}; Appendix Table~\ref{tab:layers}). Blocks 12--16 reach 95--97\% on seen validation but collapse to 50--56\% under JPEG: they overfit the seen generators' artefacts. Block 20 reaches 88.6\% clean (+3.3\pp) and +4.3 to +4.8\pp\ under resizing. CLIP is strong clean (87.7\%) but loses 10--17\pp\ under degradation; a router over all 22 frozen-feature probes averages 79.2\%.
-\ledto{Block 20 and the fusions were spotted on the test generators, and seen validation would have picked the fragile blocks 12--16. The choices had to be re-made honestly.}
+\why{Different probes failed under different degradations, which suggested choosing a probe per degradation. Tyrone's ablation suggested augmentation. And DINOv2's last layer may not be the best one to read (Section~4).}
+\textbf{Routing and augmentation help a little.} A router choosing the probe per degradation type raises the six-condition mean from 74.2\% to 75.7\% (75.4\% with the type predicted from the image itself, 83\% accurately), and clean + augmented training of the final-layer MLP gives a similar +1.7\pp\ with a single detector.
+
+\textbf{The layer matters far more} (Figure~\ref{fig:layers}; Appendix Table~\ref{tab:layers}). Blocks 12--16 reach 95--97\% on seen validation but collapse to 50--56\% under JPEG: they encode fine, pixel-level traces that are specific to the training generators and are erased by compression, so they both overfit and break. The final block is robust but weaker on clean images (81.5\%), having discarded much of that detail. Block 20 sits between the two: 88.6\% clean (+3.3\pp\ over the main runs) and +4.3 to +4.8\pp\ under resizing. CLIP, the UnivFD backbone, is strong on clean images (87.7\%) but loses 10--17\pp\ under every degradation. A router choosing among all 22 frozen-feature probes per degradation averages 79.2\% (+5.0\pp).
+\ledto{Block 20 and the best fusions were spotted on the test generators, and seen validation would have picked the fragile blocks 12--16. Before relying on them, the choices had to be re-made without looking at the test generator.}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.9\textwidth]{figures/layers.pdf}
+\includegraphics[width=0.85\textwidth]{figures/layers.pdf}
 \caption{DINOv2 MLPs by block. Left: with clean training, accuracy on the seen generators (dashed) peaks at blocks 12--16, where unseen-generator accuracy under JPEG and at 32 pixels collapses. Right: augmented training lifts the degraded curves, most at block 20.}\label{fig:layers}
 \end{figure}
 
 \subsection{Nested model selection}\label{sec:res-nested}
-\why{Seen validation ranked blocks 12--16 first, ranked the ResNet + DINOv2 ensemble first, and led the router to a block-12 probe scoring 67\% on clean ADM.}
-Nested scores rank candidates almost exactly as the outer test does (block 20 clean: 87.2\% inner, 88.6\% outer). For clean images nested selection picks the DINOv2 + CLIP fusion in 4 of 7 folds (+2.3\pp, against +4.7\pp\ if chosen after the fact); over the six conditions it picks block 20 or the block-24 patch probe, and block 20 first when thresholds adapt. A nested router (78.8\%) matches the 22-probe router and fixes its ADM failure (67\% $\to$ 77\%). Selecting on seen validation instead loses 6.9\pp.
-\ledto{Block 20 is a legitimate choice, and seen-generator accuracy is not a proxy for generalisation. Its AUROC under degradation fell much less than its BA, which pointed at the threshold.}
+\why{Seen validation had pointed the wrong way three times: it ranked blocks 12--16 first, ranked the ResNet + DINOv2 ensemble first, and led the router to a block-12 probe scoring 67\% on clean ADM. Seen-validation images come from the training generators, so they reward memorising them.}
+Nested selection scores each candidate on generators it was not fitted on, and its scores rank candidates almost exactly as the outer test does (block 20 on clean images: 87.2\% inner, 88.6\% outer). For clean images it picks the DINOv2 + CLIP fusion in 4 of 7 folds, an honest +2.3\pp\ against the +4.7\pp\ of choosing it after the fact. Over the six conditions it picks block 20 or the block-24 patch probe, and block 20 first when thresholds adapt. A nested router (78.8\%) matches the 22-probe router and fixes its ADM failure (67\% $\to$ 77\%). Selecting on seen validation instead would have cost 6.9\pp.
+\ledto{Block 20 is a legitimate choice, not luck, and accuracy on seen generators is not a proxy for generalisation, the clearest methodological lesson of the project. Under degradation, block 20's AUROC fell much less than its balanced accuracy, which pointed at the threshold.}
 
 \subsection{Threshold drift vs lost information}\label{sec:res-threshold}
-\why{If AUROC holds while BA falls, part of the loss is a threshold tuned on clean images, not destroyed information.}
-For the final-layer MLP the oracle threshold recovers only 2.2\pp: the information is lost. For block 20 it recovers 10--15\pp\ at JPEG Q50: the classes stay separable but the generated images' scores slide past the threshold (Figure~\ref{fig:drift}, top). A label-free Gaussian-mixture threshold lands within 0.6--0.8\pp\ of the oracle and lifts block 20 to 80.2\%, above the 22-probe router, holding 78.7--79.7\% on batches that are 20\% or 80\% real. The ResNet's collapse at 64 and 32 pixels is not drift: its oracle reaches only 53--55\%.
-\ledto{The label-free threshold needs a batch sharing one degradation; better to remove the drift in training so that one threshold works on single images.}
+\why{If AUROC holds while BA falls, the detector still ranks images well, and part of the loss is a threshold tuned on clean images rather than destroyed information.}
+We compare the fixed threshold with the \emph{oracle} threshold, chosen with the test labels as an upper bound. For the final-layer MLP the oracle recovers only 2.2\pp: degradation has destroyed the information. For block 20 it recovers 10--15\pp\ at JPEG Q50: the classes stay separable, but compression shifts the generated images' scores towards ``real'' and past the threshold (Figure~\ref{fig:drift}, top), plausibly because a probe trained on clean images learned that compression traces mean a JPEG photo. A label-free Gaussian-mixture threshold, needing no labels, lands within 0.6--0.8\pp\ of the oracle and lifts block 20 to 80.2\% over the six conditions, above the 22-probe router, and holds 78.7--79.7\% on batches that are 20\% or 80\% real. The ResNet's collapse at 64 and 32 pixels is not drift: even its oracle reaches only 53--55\%.
+\ledto{The drift is fixable, but a label-free threshold needs a batch of images sharing one degradation. It is better to remove the drift in training, so that one fixed threshold works on single images.}
 
 \subsection{The final detector}\label{sec:res-final}
-\why{Combine the two strongest findings: block-20 features and augmented training.}
-Augmentation, worth +1.7\pp\ on the final layer, is worth \textbf{+4.6\pp\ on block 20} (+8.5\pp\ at JPEG Q50, +10.0\pp\ at 128 + JPEG, no clean cost): block 20 still carries fine detail the probe can learn to read under degradation. It also removes most of the drift (Figure~\ref{fig:drift}, bottom): the fixed threshold is within 2.1\pp\ of the oracle, so metadata thresholds and routers add at most 0.3\pp. The final detector averages \textbf{81.3\%} over the six conditions on single images (Table~\ref{tab:main}, Figure~\ref{fig:conditions}): +7.1\pp\ over the final-layer MLP and +20.5\pp\ over the ResNet. Nested selection over 32 clean and augmented layer probes picks it or an augmented block 12--24 concatenation (81.2\% vs 81.3\%, n.s.). ADM and Midjourney remain hardest (Appendix~\ref{app:pergen}).
-\ledto{Training and test degradations were the same kinds of operation, so robustness to new degradations still had to be shown.}
+\why{Combine the two strongest findings, block-20 features and augmented training, and test whether one fixed threshold then suffices.}
+Augmentation, worth only +1.7\pp\ on the final layer, is worth \textbf{+4.6\pp\ on block 20} (+8.5\pp\ at JPEG Q50, +10.0\pp\ at 128 + JPEG, no clean cost). The difference follows from Section~\ref{sec:res-robust}: augmentation can only teach a probe to read cues that survive degradation, and block 20 still carries such detail while the final layer has largely discarded it. Seeing degraded fakes in training also removes most of the drift (Figure~\ref{fig:drift}, bottom): the fixed threshold is within 2.1\pp\ of the oracle, so thresholds read from file metadata and condition-aware routers add at most 0.3\pp.
+
+The final detector therefore averages \textbf{81.3\%} over the six conditions from single images and one threshold (Table~\ref{tab:main}, Figure~\ref{fig:conditions}): +7.1\pp\ over the final-layer MLP and +20.5\pp\ over the fine-tuned ResNet. Nested selection over all 32 clean and augmented layer probes picks it or an augmented concatenation of blocks 12--24 (81.2\% vs 81.3\%, not significant), so the choice is not tuned to the test. ADM and Midjourney remain the hardest generators (Appendix~\ref{app:pergen}).
+\ledto{Training and test degradations were the same kinds of operation, so this shows robustness to degradations seen in training. Robustness to new ones still had to be shown.}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.9\textwidth]{figures/drift.pdf}
+\includegraphics[width=0.8\textwidth]{figures/drift.pdf}
 \caption{Block-20 MLP scores relative to the fixed threshold (right of 0 = called real), pooled over the 7 folds. Top: with clean training, JPEG Q50 pushes generated images past the threshold. Bottom: augmented training keeps them on the left.}\label{fig:drift}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.9\textwidth]{figures/conditions.pdf}
+\includegraphics[width=0.8\textwidth]{figures/conditions.pdf}
 \caption{Mean BA over the seven held-out generators per condition. Each step from the ResNet to the final detector helps most under degradation.}\label{fig:conditions}
 \end{figure}
 
 \subsection{Robustness to degradations never seen in training}\label{sec:res-heldout}
-\why{Training augmentation used JPEG quality 30--95 and downscaling to 32, 64 or 128 pixels, and the standard tests use the same operations. A robust detector must also cope with degradations it never saw.}
-We applied six \textbf{held-out degradations} to every test image: JPEG quality 20 (below the trained range), WebP quality 50 (another codec), Gaussian blur (radius 1 pixel) and Gaussian noise ($\sigma = 5/255$), never used in training, and downscaling to 48 or 96 pixels, sizes between the trained ones (Table~\ref{tab:heldout}). On the standard conditions all four detectors reproduce their earlier numbers exactly.
+\why{Training augmentation used JPEG quality 30--95 and downscaling to 32, 64 or 128 pixels, and the standard tests use the same operations. A detector deployed on shared images will meet other codecs, stronger compression and other kinds of damage.}
+We applied six \textbf{held-out degradations} to every test image: JPEG quality 20 (below the trained range), WebP quality 50 (a different codec), Gaussian blur (radius 1 pixel) and Gaussian noise ($\sigma = 5/255$), never used in training, and downscaling to 48 or 96 pixels, sizes between the trained ones (Table~\ref{tab:heldout}). On the standard conditions all four detectors reproduce their earlier numbers exactly, so the comparison is consistent.
 
-The final detector averages \textbf{81.6\%} over the held-out degradations, as much as on the seen kinds (81.3\%): +5.2\pp* over the final-layer MLP and +2.8\pp* over the same block-20 probe trained on clean images, so the benefit of augmentation extends beyond the operations it imitated. It is largest at JPEG Q20 (+13.6\pp*), where the clean-trained probe calls almost every compressed fake real (generated recall 36\%); unseen sizes (+3.1\pp*, +1.2\pp*) and noise (+1.3\pp*) also improve, and blur needs no augmentation. The exception is \textbf{WebP} ($-2.7$\pp*): the final detector calls 35\% of WebP-compressed real photos generated, yet its AUROC is unchanged (0.902 vs 0.903), so a new codec shifts the scores rather than destroying the signal. The DINOv3 fusion is ahead on all six (+3.3\pp* on average). The hardest cases are ADM under noise (59.8\%) and Midjourney at JPEG Q20 (60.1\%).
-\ledto{Robustness carries over to new strengths and sizes of degradation and only partly to a new codec, where the failure is again a threshold shift. The next question was whether another backbone or more pixels could do better.}
+The final detector averages \textbf{81.6\%} over the held-out degradations, as much as on the seen kinds (81.3\%): +5.2\pp* over the final-layer MLP and +2.8\pp* over the same block-20 probe trained on clean images. Augmentation therefore taught cues that generalise beyond the operations it imitated. The gain is largest at JPEG Q20 (+13.6\pp*), where the clean-trained probe calls almost every compressed fake real (generated recall 36\%); unseen sizes (+3.1, +1.2\pp*) and noise (+1.3\pp*) also improve, and blur needs no augmentation. The exception is \textbf{WebP} ($-2.7$\pp*): the final detector calls 35\% of WebP-compressed real photos generated. Its AUROC is unchanged (0.902 vs 0.903), so the new codec shifts the scores rather than destroying the signal, the same drift as before, now in the other direction. The DINOv3 fusion is ahead on all six (+3.3\pp* on average). The hardest cases are ADM under noise (59.8\%) and Midjourney at JPEG Q20 (60.1\%).
+\ledto{Robustness carries over to new strengths and sizes of degradation and only partly to a new codec, where the failure is again a threshold shift. Augmenting with several codecs is the obvious remedy. The next question was whether another backbone or more pixels could do better.}
 
 \begin{table}[h]
 \centering\footnotesize
@@ -332,19 +337,21 @@ $\Delta$ final $-$ block 20, clean & +13.6* & $-2.7$* & +0.5 & +1.3* & +3.1* & +
 \end{table}
 
 \subsection{What did not help: CLIP blocks and native resolution}\label{sec:res-negative}
-\why{Intermediate blocks might help CLIP as they helped DINOv2, and downscaling discards most pixels of large images.}
-\textbf{CLIP block 16} reaches 92.1\% clean, the best single feature found, but 59--67\% on the format-matched test: generated recall drops from 86\% to 18--34\% because it reads JPEG compression as ``real''. Fusing CLIP with the final detector adds about 1\pp, and the nested pick loses 3.0\pp\ format-matched. \textbf{Native-resolution tiles} (mean DINOv2 token over up to four 224-pixel tiles) gain +4.4\pp\ clean and +5.0\pp\ format-matched, but image size differs by class. When every image is first resized to the same shorter side (448), only +2.8\pp\ clean and $-0.2$\pp\ format-matched survive, and small real photos are recognised less often than typical ones (93.6\% vs 98.1\%), the signature of a size cue.
-\ledto{CLIP's gain was a format cue and most of the tiles' gain a size cue. A stronger version of the backbone that worked was the remaining option.}
+\why{Intermediate blocks helped DINOv2, so they might help CLIP, the UnivFD backbone. And every detector so far sees a 224-pixel crop of a downscaled image, discarding most pixels of large images, where the finest generator artefacts may lie.}
+\textbf{Intermediate CLIP blocks.} CLIP block 16 reaches 92.1\% clean, the best single feature found, but only 59--67\% on the format-matched test: its generated recall drops from 86\% to 18--34\%, so it reads JPEG compression as ``real''. Fusing CLIP with the final detector adds about 1\pp, and the fusion that nested selection prefers loses 3.0\pp\ on the format-matched test. The six standard conditions cannot expose this, because none of them removes the PNG/JPEG difference.
+
+\textbf{Native resolution.} Averaging DINOv2 over up to four native-resolution 224-pixel tiles gains +4.4\pp\ clean and +5.0\pp\ format-matched. But image size differs by class (Figure~\ref{fig:sizes}), so a probe could learn ``content at photo scale means real''. When every image is first resized to the same shorter side (448), only +2.8\pp\ clean and $-0.2$\pp\ format-matched survive, and small real photos are recognised less often than typical ones (93.6\% vs 98.1\%), the signature of a size cue.
+\ledto{CLIP's gain was a format cue and most of the tiles' gain a size cue: both new directions failed the same way, because every shortcut in GenImage favours one class. A stronger version of the backbone that already worked was the remaining option.}
 
 \subsection{DINOv3 fusion}\label{sec:res-dinov3}
-\why{DINOv2's successor, trained on 1.7 billion images, through the same pipeline and nested selection.}
-In all seven folds nested selection picks the fusion of the final detector with a DINOv3 block-24 MLP (Table~\ref{tab:main}; Appendix Table~\ref{tab:dinov3}). It is significantly better in every condition (+2.0 to +3.8\pp, mean +3.1\pp*) and on every generator. Unlike CLIP it passes the format check: clean to format-matched costs 3.1\pp, as for the final detector. DINOv3's own blocks behave like DINOv2's: block 20 is the best single block, and augmentation fixes its JPEG drift.
-\ledto{The fusion is the best detector on GenImage; it had to be tested outside GenImage before replacing the final detector.}
+\why{DINOv3 is DINOv2's successor, trained on 1.7 billion images. We ran it through the same pipeline and nested selection, with 24 candidates.}
+In all seven folds nested selection picks the fusion of the final detector with a DINOv3 block-24 MLP (Table~\ref{tab:main}; Appendix Table~\ref{tab:dinov3}). It is significantly better in every condition (+2.0 to +3.8\pp, mean +3.1\pp*) and on every held-out generator: the two backbones make different errors, so averaging them helps. Unlike CLIP it passes the format check, losing 3.1\pp\ from clean to format-matched, the same as the final detector. DINOv3's own blocks behave like DINOv2's: block 20 is the best single block, and augmentation fixes its JPEG drift.
+\ledto{The fusion is the best detector on GenImage by every measure there. Before it replaced the final detector, it had to be tested outside GenImage.}
 
 \subsection{Cross-dataset test: CIFAKE}\label{sec:res-cifake}
-\why{All selection so far happened inside GenImage.}
-Both detectors were retrained on all seven generators and scored on CIFAKE's test split: 10,000 CIFAR-10 photos and 10,000 Stable Diffusion v1.4 images, all 32$\times$32 JPEGs (Table~\ref{tab:cifake}, Figure~\ref{fig:cifake}). The final detector reaches 76.5\%, better than its GenImage 32-pixel result, with its GenImage threshold within 0.6\pp\ of the best one. The fusion is worse: its DINOv3 head reaches AUROC 0.709, and its scores drift so that only 52\% of real photos are called real. CIFAKE has one generator at a tiny size, so it tests new real photos and extreme downscaling more than a new generator.
-\ledto{The final detector stays the DINOv2 block-20 MLP; the fusion remains a candidate until it wins on full-resolution external data.}
+\why{All selection so far, nested or not, happened inside GenImage, whose real photos and generators are shared by every fold. Only a different dataset can show whether the ranking holds.}
+Both detectors were retrained on all seven generators and scored on CIFAKE's test split: 10,000 CIFAR-10 photos and 10,000 Stable Diffusion v1.4 images, all 32$\times$32 JPEGs, so the format is matched by construction (Table~\ref{tab:cifake}, Figure~\ref{fig:cifake}). The final detector reaches 76.5\%, better than its GenImage 32-pixel result (72.3\%), and its GenImage threshold is within 0.6\pp\ of the best one for this set. The fusion is worse (70.7\%): its DINOv3 head barely separates the classes on these images (AUROC 0.709), and its scores drift so that only 52\% of real photos are called real. CIFAKE has one generator at a tiny size, so it tests new real photos and extreme downscaling more than a new generator.
+\ledto{The GenImage ranking of the two best detectors reverses on the first dataset outside it. The final detector stays the DINOv2 block-20 MLP; the fusion remains a candidate until it also wins on full-resolution external data.}
 
 \begin{table}[h]
 \centering\footnotesize
@@ -368,15 +375,25 @@ DINOv3 block-24 head alone & 0.709 & & & 65.4 & \\
 
 % ================================================================== 6
 \section{Discussion}
-\textbf{Shortcuts in GenImage.} File format, image size and the resampling that follows from size all separate the classes without any generator artefact. Each new direction exploited one: the base detector the format (2--3\pp), CLIP's blocks the format (up to 33\pp), native tiles the size (about 2\pp). The standard conditions cannot expose them; format- and size-matched controls did, and should accompany any new feature.
+\textbf{Answers to the project questions.} \emph{(1) Generalisation to unseen generators:} largely yes. On a generator never seen in training the final detector reaches 88.7\% balanced accuracy on clean images (AUROC 0.959), and about 84\% once family leakage and the format shortcut are removed. It is uneven: 96--97\% on BigGAN and GLIDE but 73--78\% on ADM and Midjourney, and 76.5\% on a different dataset at 32 pixels. \emph{(2) Robustness to compression and resizing:} largely yes, from a single image and one threshold. It averages 81.3\% over six degradations seen in kind during training and 81.6\% over six it never saw. The weakest points are extreme downscaling (72.3\% at 32 pixels) and a new codec (WebP), where the threshold shifts.
 
-\textbf{Model selection must use a held-out generator.} Seen validation repeatedly pointed the wrong way (fragile early blocks, the ResNet ensemble, a block-12 router choice), while nested selection ranked candidates almost exactly as the real test. Its limit appeared with DINOv3: nested selection inside GenImage is still selection for GenImage, and CIFAKE reversed its choice.
+\textbf{What made the difference.} Three choices account for nearly all of the gain over the fine-tuned ResNet: freezing a large self-supervised backbone, so that only a small probe can fit the training generators; reading an intermediate block, which keeps detail that the final layer discards; and training on degraded images, which teaches the probe to read that detail under compression and resizing and removes most of the threshold drift. Routers, metadata thresholds and CLIP fusion each added at most about 1\pp\ once these were in place.
+
+\textbf{Shortcuts in GenImage.} File format, image size and the resampling that follows from size all separate the classes without any generator artefact. Each new direction exploited one: the base detector the format (2--3\pp), CLIP's blocks the format (up to 33\pp), native tiles the size (about 2\pp). The standard conditions cannot expose these cues; format- and size-matched controls did, and should accompany any new feature.
+
+\textbf{Model selection must use a held-out generator.} Seen validation repeatedly pointed the wrong way, while nested selection ranked candidates almost exactly as the real test did. Its limit appeared with DINOv3: nested selection inside GenImage is still selection for GenImage, and CIFAKE reversed its choice.
 
 \textbf{Limitations.} All training data share ImageNet real photos and 2021--2023 generators, and the only cross-dataset test is at 32 pixels. There is one split and one real-photo source; the folds share real test photos, and bootstrap intervals cover image sampling only. The label-free threshold needs a batch of images sharing one degradation, and robustness to a new codec is only partial (WebP). DINOv3 was tried after two other ideas failed, a small selection effect the nested protocol does not measure, and its training data are not public.
 
 % ================================================================== 7
 \section{Conclusion and Future Work}\label{sec:conclusion}
-A small MLP on a frozen intermediate block of DINOv2, trained on JPEG- and resize-augmented images of known generators, detects images from an unseen generator with 81.3\% mean balanced accuracy over six degradations from a single image and one threshold, against 60.8\% for a fine-tuned ResNet-18 and 74.2\% for the final-layer probe. It keeps 81.6\% on six degradations it never saw in training; a new codec (WebP) is the one case where it falls behind, through a threshold shift. The gain comes from reading the right layer and training it on degraded images, and it survives nested selection, family hold-outs and format-matched tests. A DINOv3 fusion is better on GenImage but worse on CIFAKE, so the final detector remains the DINOv2 block-20 MLP. Both detectors are exported with a scoring script; the next step is full-resolution external data with newer generators, such as Synthbuster~\cite{bammey2023synthbuster} and COCO with SD3 and Midjourney 6, and training with random rescaling so that image size carries no label.
+A small MLP on a frozen intermediate block of DINOv2, trained on JPEG- and resize-augmented images of known generators, detects images from an unseen generator with 81.3\% mean balanced accuracy over six degradations from a single image and one threshold, against 60.8\% for a fine-tuned ResNet-18 and 74.2\% for the final-layer probe. It keeps 81.6\% on six degradations it never saw in training; a new codec (WebP) is the one case where it falls behind, through a threshold shift. The gain survives nested selection, family hold-outs and format-matched tests. A DINOv3 fusion is better on GenImage but worse on CIFAKE, so the final detector remains the DINOv2 block-20 MLP. Three lessons generalise beyond this project:
+\begin{itemize}
+  \item \textbf{Freeze, choose the layer, augment.} With frozen features, which layer is read and how training images are degraded matter more than the classifier or post-hoc routing.
+  \item \textbf{Select on a held-out generator.} Seen-generator accuracy rewards memorisation; nested leave-one-generator-out selection does not, though it is still selection within one benchmark.
+  \item \textbf{Control for shortcuts.} A gain counts only if it survives format- and size-matched tests and, ideally, another dataset.
+\end{itemize}
+Both detectors are exported with a scoring script. Next steps: full-resolution external data with newer generators (Synthbuster~\cite{bammey2023synthbuster}; COCO with SD3), multi-codec augmentation, and random rescaling against the size cue.
 
 % ------------------------------------------------------------------ references
 \clearpage
@@ -400,6 +417,29 @@ A small MLP on a frozen intermediate block of DINOv2, trained on JPEG- and resiz
 \appendix
 \sloppy
 \section{Additional Results}\label{app:pergen}
+
+\begin{table}[H]
+\centering\footnotesize
+\caption{The research path. M = Michael Yip Hoi Weng, T = Tyrone Tiang Jin Shen, S = Choi Seunghwan.}\label{tab:path}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.1cm}@{}}
+\toprule
+Step & Question & Answer & Led to \\
+\midrule
+1. RIGID, probes (M) \S\ref{sec:res-rigid} & Can a frozen model detect fakes without training? & Sometimes (AUROC 0.96--0.99 on FFHQ, $\approx$0.5 on COCO); a probe helps within a dataset. & Train on fakes; measure generalisation under control. \\
+2. ResNet vs DINOv2 (T, S) \S\ref{sec:res-baselines} & Fine-tuned CNN or frozen features? & ResNet 72.2\% clean; DINOv2 MLP 85.3\%, ahead by 9--22\pp. & Is 85\% real? \\
+3. Stress tests (S) \S\ref{sec:res-stress} & Family leakage, format shortcut, seeds? & Each costs a little; about 84\% survives. & Degradation is the weakness. \\
+4. Robustness (S, T) \S\ref{sec:res-robust} & Routing, augmentation, better layer? & Block 20 helps most; a 22-probe router 79.2\%. & Were the choices made honestly? \\
+5. Nested selection (S) \S\ref{sec:res-nested} & Does seen validation pick well? & No; nested selection confirms block 20. & Features or threshold? \\
+6. Thresholds (S) \S\ref{sec:res-threshold} & How much loss is threshold drift? & For block 20, most: label-free 80.2\%. & Fix the drift in training. \\
+7. Final detector (S) \S\ref{sec:res-final} & Block 20 + augmentation, one threshold? & 81.3\% on single images, +20.5\pp\ over ResNet. & Robust to unseen degradations? \\
+8. Held-out degradations (S) \S\ref{sec:res-heldout} & Degradations never trained on? & Mostly: 81.6\% on six unseen degradations; WebP shifts the threshold. & Can another backbone or more pixels beat it? \\
+9. CLIP, native res. (S) \S\ref{sec:res-negative} & Intermediate CLIP blocks, native-resolution tiles? & Both lean on format or size shortcuts. & A stronger self-supervised backbone. \\
+10. DINOv3 (S) \S\ref{sec:res-dinov3} & DINOv2's successor? & Fusion 84.4\% (+3.1\pp), no shortcut. & Test outside GenImage. \\
+11. CIFAKE (S) \S\ref{sec:res-cifake} & Does the ranking hold elsewhere? & No: final 76.5\%, fusion 70.7\%. & Keep the final detector. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \begin{table}[H]
 \centering\footnotesize
