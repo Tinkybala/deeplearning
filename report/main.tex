@@ -56,9 +56,9 @@
   \begin{adjustbox}{max width=\textwidth}\begin{tabular}{l@{\hspace{2.5cm}}l}
     \textbf{Name} & \textbf{Matriculation No.} \\
     \hline
-    Choi Seunghwan & \rule{4cm}{0.4pt} \\
-    Tyrone Tiang & \rule{4cm}{0.4pt} \\
-    Michael & \rule{4cm}{0.4pt} \\
+    Choi Seunghwan & U2021319B \\
+    Tyrone Tiang Jin Shen & U2420849F \\
+    Michael Yip Hoi Weng & U2323120D \\
   \end{tabular}\end{adjustbox}\par}
   \vfill
   {\large College of Computing and Data Science\\ Nanyang Technological University\par}
@@ -164,11 +164,48 @@ Format 256+q96 & both classes: shorter side to 256, then JPEG quality 96 (4:4:4 
 \end{tabularx}
 \end{table}
 
+Figure~\ref{fig:examples} shows one test image of each kind as the detectors see it. At JPEG Q50 the differences are subtle to the eye; at 32 pixels most of the fine detail that could reveal a generator is gone.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/examples.pdf}
+\caption{One real test photo and one test image from each generator, after the shared preprocessing (shorter side 256, centre crop 224), under three of the test conditions.}\label{fig:examples}
+\end{figure}
+
 \subsection{Metrics and statistics}
 The main metric is \textbf{balanced accuracy} (BA), the mean of real-photo recall and generated-image recall at the fixed threshold; with 500 images per class it equals accuracy. \textbf{AUROC} measures ranking independently of the threshold. Results are averaged over the seven held-out generators. Differences between two detectors are tested with a \textbf{paired, class-stratified bootstrap}: 2,000 resamples of each fold's test images, the same resample for both detectors, and the mean difference over folds. A difference is called significant when its 95\% percentile interval excludes zero. The intervals cover sampling of test images only; the seven folds share their real test photos, so they are not independent samples.
 
 \subsection{Nested model selection}\label{sec:nested}
-Choosing a layer, probe or fusion by its test score would leak the held-out generator into the design. We therefore choose by \emph{nested} leave-one-generator-out~\cite{varma2006bias}: inside each outer fold, every candidate is refit six times, each time with one of the six seen generators held out, and scored on that inner held-out generator. The candidate with the best inner score, averaged over the six standard conditions, is the fold's pick, and only then is it scored on the outer generator.
+Choosing a layer, probe or fusion by its test score would leak the held-out generator into the design. We therefore choose by \emph{nested} leave-one-generator-out~\cite{varma2006bias}: inside each outer fold, every candidate is refit six times, each time with one of the six seen generators held out, and scored on that inner held-out generator. The candidate with the best inner score, averaged over the six standard conditions, is the fold's pick, and only then is it scored on the outer generator. Figure~\ref{fig:protocol} shows one outer and one inner fold.
+
+\begin{figure}[h]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  g/.style={draw, rounded corners=2pt, minimum width=1.75cm, minimum height=0.75cm, font=\footnotesize, align=center},
+  seen/.style={g, draw=ntublue, fill=ntublue!8},
+  test/.style={g, draw=ntured, thick, fill=ntured!12},
+  inner/.style={g, draw=ntublue, thick, dashed, fill=ntublue!28},
+  unused/.style={g, draw=black!25, text=black!40, fill=black!3},
+  lab/.style={font=\small\bfseries, anchor=east, align=right}]
+\def\gens{{"BigGAN","VQDM","SD v1.5","Wukong","ADM","Midjourney"}}
+\node[lab] at (0.2, 0) {Outer fold\\[-2pt]{\footnotesize\mdseries (1 of 7)}};
+\foreach \i in {0,...,5} \node[seen] at (1.4 + \i*2.0, 0) {\pgfmathparse{\gens[\i]}\pgfmathresult};
+\node[test] at (1.4 + 6*2.0 + 0.3, 0) {GLIDE\\[-2pt]held out};
+\node[lab] at (0.2, -1.5) {Inner fold\\[-2pt]{\footnotesize\mdseries (1 of 6)}};
+\foreach \i in {0,1,2,3,5} \node[seen] at (1.4 + \i*2.0, -1.5) {\pgfmathparse{\gens[\i]}\pgfmathresult};
+\node[inner] at (1.4 + 4*2.0, -1.5) {ADM\\[-2pt]inner test};
+\node[unused] at (1.4 + 6*2.0 + 0.3, -1.5) {GLIDE\\[-2pt]not used};
+\draw[-{Stealth[length=2mm]}, ntublue, thick] (1.4 + 4*2.0, -0.4) -- (1.4 + 4*2.0, -1.1);
+\node[font=\footnotesize, align=left, anchor=north west, text=black!75] at (1.0, -2.2)
+  {Each candidate is refit on the five inner-seen generators and scored on the inner test generator, for all 6 inner folds.\\
+   The candidate with the best mean inner score is refit on all six seen generators and tested once on GLIDE.};
+\node[font=\footnotesize, anchor=west] at (0.7, 0.85) {\tikz\node[seen, minimum width=0.5cm, minimum height=0.3cm]{};\ seen: fit and threshold};
+\node[font=\footnotesize, anchor=west] at (5.0, 0.85) {\tikz\node[inner, minimum width=0.5cm, minimum height=0.3cm]{};\ inner test: model choice};
+\node[font=\footnotesize, anchor=west] at (9.6, 0.85) {\tikz\node[test, minimum width=0.5cm, minimum height=0.3cm]{};\ outer test: reported result};
+\end{tikzpicture}}
+\caption{Leave-one-generator-out with nested model selection, shown for the GLIDE fold. The outer test generator is used only once, to score the chosen model. Every fold also uses real ImageNet photos: 1,600 for fitting, 400 for the threshold and 500 for the test.}\label{fig:protocol}
+\end{figure}
 
 % ================================================================== 4
 \section{Methods}
@@ -257,7 +294,7 @@ The experiments were not planned in advance as a grid. Each one answered a quest
 
 \begin{table}[h]
 \centering\footnotesize
-\caption{The research path. M = Michael, T = Tyrone, S = Seunghwan.}\label{tab:path}
+\caption{The research path. M = Michael Yip Hoi Weng, T = Tyrone Tiang Jin Shen, S = Choi Seunghwan.}\label{tab:path}
 \renewcommand{\arraystretch}{1.25}
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.0cm}@{}}
 \toprule
@@ -330,6 +367,13 @@ DINOv2, MLP (clean + diff) & \best{85.3} & 74.7 & \best{81.5} & \best{74.1} & 61
   \item \textbf{File-format shortcut.} Every GenImage real photo is a high-quality JPEG; every generated image is a PNG of a fixed size. When both classes go through the same pipeline (Format 256+q96), the MLP drops to 82.5\% ($-2.8$\pp): generated recall falls from 83\% to 72\%, so JPEG-compressed fakes look real. Midjourney drops most, from 78.1\% to 68.6\%. Training on format-aligned images recovers most of this (84.8\%). The fine-tuned ResNet loses only 0.7\pp.
   \item \textbf{Seed noise.} Over five training seeds the standard deviation of the seven-generator mean is 0.2--0.4\pp, and every key comparison keeps its sign on every seed.
 \end{itemize}
+Figure~\ref{fig:sizes} shows why format and size are risky in GenImage: the two classes differ in both, so a detector can separate them without looking at what the image shows.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/sizes.pdf}
+\caption{Shorter side of the test images, by class (500 per row; one dot per image). Every generator produces one fixed size and saves PNG files; the real photos are JPEGs of varied size. Both properties carry the label.}\label{fig:sizes}
+\end{figure}
 \ledto{The headline survives at about 84\%, and the format-matched test becomes a standard check for every later detector. The real weakness is degradation: 74.7\% at JPEG Q50 and 61.6\% at 32 pixels. That is the next problem.}
 
 \subsection{Robustness to JPEG and resizing}\label{sec:res-robust}
@@ -337,7 +381,7 @@ DINOv2, MLP (clean + diff) & \best{85.3} & 74.7 & \best{81.5} & \best{74.1} & 61
 
 \paragraph{Routing and augmentation.} Picking the probe per degradation type on degraded seen validation raises the mean over the six conditions from 74.2\% to 75.7\%; predicting the degradation from the image itself (83\% accurate) keeps 75.4\%. Training the final-layer MLP on clean + augmented images gives a similar +1.7\pp\ with one detector.
 
-\paragraph{Intermediate blocks.} The choice of layer matters far more (Table~\ref{tab:layers}). Blocks 12--16 reach 95--97\% on seen validation but collapse to about 50--56\% under JPEG: they overfit the seen generators' artefacts. Block 20 combines the two regimes: 88.6\% clean (+3.3\pp\ over the final layer) and +4.3 to +4.8\pp\ under resizing. CLIP ViT-L/14, the UnivFD backbone, is strong on clean images (87.7\%) but loses 10--17\pp\ under every degradation. Averaging the logits of the DINOv2 and CLIP MLPs gives the best clean result, 90.0\%, but CLIP pulls it down under degradation. A router choosing among all 22 frozen-feature probes on degraded seen validation averages 79.2\% over the six conditions (+5.0\pp), picking block-20 and multi-layer probes for most conditions.
+\paragraph{Intermediate blocks.} The choice of layer matters far more (Table~\ref{tab:layers}, Figure~\ref{fig:layers}). Blocks 12--16 reach 95--97\% on seen validation but collapse to about 50--56\% under JPEG: they overfit the seen generators' artefacts. Block 20 combines the two regimes: 88.6\% clean (+3.3\pp\ over the final layer) and +4.3 to +4.8\pp\ under resizing. CLIP ViT-L/14, the UnivFD backbone, is strong on clean images (87.7\%) but loses 10--17\pp\ under every degradation. Averaging the logits of the DINOv2 and CLIP MLPs gives the best clean result, 90.0\%, but CLIP pulls it down under degradation. A router choosing among all 22 frozen-feature probes on degraded seen validation averages 79.2\% over the six conditions (+5.0\pp), picking block-20 and multi-layer probes for most conditions.
 
 \begin{table}[h]
 \centering\small
@@ -356,6 +400,12 @@ CLIP ViT-L/14 & 87.7 & 63.9 & 57.4 & 51.1 & 74.6 & 93.4 \\
 \end{tabular}\end{adjustbox}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/layers.pdf}
+\caption{DINOv2 MLP probes by block (mean BA over the 7 folds). Left: on clean training, accuracy on the seen generators (dashed) peaks at blocks 12--16, exactly where the unseen generator under JPEG or at 32 pixels collapses towards chance; block 20 is best on unseen generators. Right: augmented training lifts the degraded curves, most at block 20 (Section~\ref{sec:res-final}).}\label{fig:layers}
+\end{figure}
+
 \ledto{The layer matters far more than routing or augmentation on the final layer. But block 20 and the CLIP fusion were spotted on the test generators, and seen-generator validation would have picked the fragile blocks 12--16. The choices had to be re-made honestly.}
 
 \subsection{Nested model selection}\label{sec:res-nested}
@@ -366,12 +416,18 @@ The nested scores rank candidates almost exactly as the outer test does (block 2
 
 \subsection{Threshold drift vs lost information}\label{sec:res-threshold}
 \why{Under degradation AUROC falls much less than BA, so part of the loss may be a threshold tuned on clean images that no longer separates the classes, rather than information destroyed by the degradation.}
-For the final-layer MLP, little of it is: even the oracle threshold recovers only 2.2\pp. For block 20, a lot is: the oracle recovers 10--15\pp\ at JPEG Q50. The label-free Gaussian-mixture threshold lands within 0.6--0.8\pp\ of the oracle and lifts block 20 to 80.2\% over the six conditions, more than the 22-probe router (79.2\%), without knowing the degradation, and holds at 78.7--79.7\% on batches that are 20\% or 80\% real. The ResNet's collapse at 64 and 32 pixels is not a threshold problem: its oracle reaches only 53--55\%.
+For the final-layer MLP, little of it is: even the oracle threshold recovers only 2.2\pp. For block 20, a lot is: the oracle recovers 10--15\pp\ at JPEG Q50. Figure~\ref{fig:drift} (top row) shows why: under JPEG Q50 the two classes stay largely separable, but the generated images' scores slide to the right, past the fixed threshold. The label-free Gaussian-mixture threshold lands within 0.6--0.8\pp\ of the oracle and lifts block 20 to 80.2\% over the six conditions, more than the 22-probe router (79.2\%), without knowing the degradation, and holds at 78.7--79.7\% on batches that are 20\% or 80\% real. The ResNet's collapse at 64 and 32 pixels is not a threshold problem: its oracle reaches only 53--55\%.
 \ledto{Block 20 keeps the information but its scores shift. A label-free threshold needs a batch of images that share one degradation, so the next step was to remove the drift in training instead, so that one fixed threshold works on single images.}
 
 \subsection{The final detector}\label{sec:res-final}
 \why{Combine the two strongest findings, block-20 features and augmented training, and test whether single-image thresholds can replace the batch threshold.}
-Combining block 20 with augmented training gives the final detector (Table~\ref{tab:final}). Augmentation, worth +1.7\pp\ on the final layer, is worth +4.6\pp\ on block 20, with +8.5\pp\ at JPEG Q50 and +10.0\pp\ at 128 + JPEG and no clean cost: block 20 still carries the fine detail the probe can learn to read under degradation. Augmentation also removes most of the threshold drift: the fixed threshold is within 2.1\pp\ of the oracle, so thresholds read from file metadata (size, JPEG quality) add only 0.3\pp\ and condition-aware routers add nothing.
+Combining block 20 with augmented training gives the final detector (Table~\ref{tab:final}). Augmentation, worth +1.7\pp\ on the final layer, is worth +4.6\pp\ on block 20, with +8.5\pp\ at JPEG Q50 and +10.0\pp\ at 128 + JPEG and no clean cost: block 20 still carries the fine detail the probe can learn to read under degradation. Augmentation also removes most of the threshold drift (Figure~\ref{fig:drift}, bottom row): the fixed threshold is within 2.1\pp\ of the oracle, so thresholds read from file metadata (size, JPEG quality) add only 0.3\pp\ and condition-aware routers add nothing.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/drift.pdf}
+\caption{Block-20 MLP scores on the held-out generator's test images, relative to the fixed threshold (0 = threshold; right of it = called real), pooled over the 7 folds; values beyond $\pm16$ are drawn at the edge. Top: trained on clean images, JPEG Q50 shifts the generated images' scores past the threshold. Bottom: with augmented training the generated images stay on the left.}\label{fig:drift}
+\end{figure}
 
 \begin{table}[h]
 \centering\small
@@ -560,8 +616,8 @@ All code, result files and the exported detectors are in the project repository 
 
 \section{Team Contributions}
 \begin{itemize}
-  \item \textbf{Michael}: RIGID, the training-free starting point; probes on RIGID features; real-only anomaly detection; cross-dataset tests of RIGID and its probes (CIFAKE, Synthbuster/RAISE, COCO, Unsplash, FFHQ/LSUN).
-  \item \textbf{Tyrone Tiang}: the fine-tuned ResNet-18 baseline, the leave-one-generator-out protocol and its test conditions, the augmentation ablation and the seven-generator sweep.
+  \item \textbf{Michael Yip Hoi Weng}: RIGID, the training-free starting point; probes on RIGID features; real-only anomaly detection; cross-dataset tests of RIGID and its probes (CIFAKE, Synthbuster/RAISE, COCO, Unsplash, FFHQ/LSUN).
+  \item \textbf{Tyrone Tiang Jin Shen}: the fine-tuned ResNet-18 baseline, the leave-one-generator-out protocol and its test conditions, the augmentation ablation and the seven-generator sweep.
   \item \textbf{Choi Seunghwan}: frozen DINOv2 detectors on the shared protocol; stress tests (family leakage, format shortcut, seeds); robustness (routing, augmentation, intermediate blocks, threshold adaptation); nested model selection; the final detector; CLIP, native-resolution and DINOv3 experiments; export and the CIFAKE test.
 \end{itemize}
 
