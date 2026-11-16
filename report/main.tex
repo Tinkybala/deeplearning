@@ -37,6 +37,9 @@
 \titlespacing*{\subsection}{0pt}{8pt plus 2pt}{3pt}
 \titlespacing*{\paragraph}{0pt}{4pt}{0.6em}
 \setlength{\parskip}{3pt}
+\setlength{\parindent}{0pt}
+% full-width abstract, body size, no side margins
+\renewenvironment{abstract}{\begin{center}\bfseries\abstractname\end{center}\vspace{-8pt}}{\par}
 \newcommand{\best}[1]{\textbf{#1}}
 \newcommand{\pp}{\,pp}
 \newcommand{\why}[1]{\noindent\textit{\color{ntublue}Motivation.} #1\par}
