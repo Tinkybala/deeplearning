@@ -25,7 +25,7 @@ This document links the experiments on all three branches into one argument: wha
 | 8. Thresholds (S) | How much is threshold drift? | For block 20, most of it. A label-free threshold gives **80.2%** without knowing the degradation. | The final detector. |
 | 9. Final detector (S) | Combine block 20 with augmented training; can single images match the batch threshold? | Augmentation works on block 20: +4.6 pp. One fixed threshold gives **81.3%** on single images; a batch threshold gives 82.9%. | Can another backbone or more pixels beat it? |
 | 10. CLIP blocks and native resolution (S) | Do intermediate CLIP blocks or native-resolution tiles help? | CLIP block 16 is 92% clean but reads JPEG as "real" (59–67% format-matched); fusion adds about 1 pp. Native tiles give +4.4 pp clean, but only 1–3 pp survive size matching, and almost none of that under format matching. | DINOv3 as a stronger single backbone. |
-| 11. DINOv3 (S) | Does DINOv2's successor help, without a shortcut? | Yes. Fusing the final detector with DINOv3 block 24 is picked in 7 of 7 folds: **84.4%** mean (+3.1 pp), better in every condition, and +3.1 pp on the format-matched test. | Replace the final detector; test it on other datasets. |
+| 11. DINOv3 (S) | Does DINOv2's successor help, without a shortcut? | On GenImage, yes. Fusing the final detector with DINOv3 block 24 is picked in 7 of 7 folds: **84.4%** mean (+3.1 pp), better in every condition, and +3.1 pp on the format-matched test. On CIFAKE (32 px) it is worse: 70.7% vs 76.5%. | Test both on full-resolution external sets before choosing. |
 
 (M = Michael, T = Tyrone, S = Seunghwan)
 
@@ -213,7 +213,11 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 
 **Caveats.** DINOv3 was tried after two other ideas failed, so one more backbone adds a small selection effect that the nested protocol does not measure. Its training data is not public and could contain images from these generators. The fusion costs two ViT-L passes per image.
 
-**Takeaway.** A better foundation model helps where a different one (CLIP) or more pixels did not: the gain is broad, consistent across folds and not a format shortcut. It is the strongest candidate for the final detector.
+**First cross-dataset test: CIFAKE** (`results/external/cifake*.md`). Both detectors were exported, trained on all seven generators, and scored on CIFAKE's 10,000 real CIFAR-10 photos and 10,000 SD v1.4 images, all 32 × 32 JPEGs.
+- The final detector reaches 76.5% balanced accuracy (AUROC 0.853), better than its 72.3% on GenImage's own 32 px test. Its GenImage threshold is within 0.6 pp of the best one.
+- The fusion is worse: 70.7% (AUROC 0.835). The DINOv3 head alone reaches only AUROC 0.709. The fusion's threshold also drifts: just 52% of real photos are called real, and a label-free threshold brings it back to 75.5%.
+
+**Takeaway.** On GenImage, a better foundation model helps where a different one (CLIP) or more pixels did not: the gain is broad, consistent across folds and not a format shortcut. But on the first dataset outside GenImage the ranking reverses. GenImage-only selection, however careful, still selects for GenImage. The final detector stays the DINOv2 block-20 MLP until the fusion also wins on full-resolution external sets.
 
 ---
 
@@ -235,5 +239,5 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **Cross-dataset test of the final detector.** `models/final_detector_dinov2_l20_mlp.pt` (trained on all 7 GenImage generators) and `scripts/score_final_detector.py` are ready to run on Michael's COCO, Unsplash, FFHQ/LSUN and Synthbuster sets.
 - **Further models.**
   - Native-resolution tiles trained with random rescaling, so that size and resampling carry no label (section 10).
-  - The DINOv2 + DINOv3 block-24 fusion (section 11) is exported as `models/fusion_detector_dinov2_l20_dinov3_l24.pt` (`score_final_detector.py --fusion`). It should be tested on other datasets beside the current final detector. SigLIP 2 has not been tried.
+  - The DINOv2 + DINOv3 block-24 fusion (section 11) is exported as `models/fusion_detector_dinov2_l20_dinov3_l24.pt` (`score_final_detector.py --fusion`). It lost to the final detector on CIFAKE; the full-resolution external sets will decide between them. SigLIP 2 has not been tried.
   - Any new backbone must also pass the format-matched test, which CLIP's intermediate blocks failed.

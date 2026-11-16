@@ -1,0 +1,45 @@
+{
+ "model": "final_detector_dinov2_l20_mlp.pt",
+ "score": "p_real",
+ "threshold": 0.17135019600391388,
+ "meta": {
+  "backbone": "dinov2_vitl14",
+  "layer": 20,
+  "token": "CLS, layer-normed (get_intermediate_layers norm=True)",
+  "preprocess": "Resize(256) + CenterCrop(224) + ImageNet normalisation",
+  "output": "sigmoid = P(real); P(real) >= threshold -> real",
+  "fit": "3200 real + 14000 generated GenImage training images (7 generators), each clean and augmented (JPEG 30-95 / resize 32-128 px, p = 0.5 each)",
+  "calibration": "800 real + 3500 generated, clean; balanced accuracy at the threshold 0.9566",
+  "seed": 42
+ },
+ "skipped": 0,
+ "overall": {
+  "n_real": 10000,
+  "n_generated": 10000,
+  "auroc": 0.8529694,
+  "ba_shipped": 0.7646,
+  "ba_test_gmm": 0.76695,
+  "ba_oracle": 0.7711,
+  "real_recall": 0.7065,
+  "generated_recall": 0.8227
+ },
+ "per_generated_source": {
+  "FAKE": {
+   "n_real": 10000,
+   "n_generated": 10000,
+   "auroc": 0.8529694,
+   "ba_shipped": 0.7646,
+   "ba_test_gmm": 0.76695,
+   "ba_oracle": 0.7711,
+   "real_recall": 0.7065,
+   "generated_recall": 0.8227
+  }
+ },
+ "per_real_source": {
+  "REAL": {
+   "n_real": 10000,
+   "n_generated": 0,
+   "real_recall": 0.7065
+  }
+ }
+}

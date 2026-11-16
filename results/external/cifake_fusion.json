@@ -1,0 +1,43 @@
+{
+ "model": "fusion_detector_dinov2_l20_dinov3_l24.pt",
+ "score": "fused_score",
+ "threshold": 0.6878404409835598,
+ "meta": {
+  "backbone": "dinov2_vitl14 block 20 + dinov3_vitl16 block 24",
+  "preprocess": "Resize(256) + CenterCrop(224) + ImageNet normalisation",
+  "output": "per head: s = logit(sigmoid(MLP)), z = (s - z_mean) / z_std; fused = mean of the heads' z; fused >= threshold -> real",
+  "fit": "3200 real + 14000 generated GenImage training images (7 generators), each clean and augmented (JPEG 30-95 / resize 32-128 px, p = 0.5 each)",
+  "calibration": "800 real + 3500 generated, clean; z statistics and threshold; balanced accuracy at the threshold 0.9710",
+  "seed": 42
+ },
+ "skipped": 0,
+ "overall": {
+  "n_real": 10000,
+  "n_generated": 10000,
+  "auroc": 0.8349209499999999,
+  "ba_shipped": 0.7071000000000001,
+  "ba_test_gmm": 0.755,
+  "ba_oracle": 0.7556,
+  "real_recall": 0.5219,
+  "generated_recall": 0.8923
+ },
+ "per_generated_source": {
+  "FAKE": {
+   "n_real": 10000,
+   "n_generated": 10000,
+   "auroc": 0.8349209499999999,
+   "ba_shipped": 0.7071000000000001,
+   "ba_test_gmm": 0.755,
+   "ba_oracle": 0.7556,
+   "real_recall": 0.5219,
+   "generated_recall": 0.8923
+  }
+ },
+ "per_real_source": {
+  "REAL": {
+   "n_real": 10000,
+   "n_generated": 0,
+   "real_recall": 0.5219
+  }
+ }
+}

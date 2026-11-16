@@ -569,7 +569,7 @@ Difference of the nested pick from the final detector (pp; * = paired bootstrap 
 - DINOv3's training set is web-scale and not public. If it contains images from these generators, the gain would partly be memory. DINOv2's LVD-142M carries the same risk on a smaller scale.
 - The fusion needs two ViT-L passes per image, about twice the cost of the final detector.
 
-The fusion with DINOv3 block 24 is the strongest candidate to replace the final detector. It is exported beside it (next section) so that both can be tested on other datasets.
+The fusion with DINOv3 block 24 is the strongest candidate on GenImage. It is exported beside the final detector (next section) so that both can be tested on other datasets. On CIFAKE, the first such test, it is worse than the final detector (see "Cross-dataset test: CIFAKE").
 
 #### Exported final detector, for tests on other datasets
 
@@ -596,6 +596,34 @@ Results go to `results/external/<name>.{md,json}`, with per-image scores in a CS
 - The threshold on the fused score is calibrated as above: 97.1% balanced accuracy on the calibration set, against 95.7% for the DINOv2 detector alone.
 
 `score_final_detector.py --fusion` scores with it, with the same reports. It also needs timm and DINOv3's weights, which timm downloads from the Hugging Face hub (DINOv3 License). On 140 GenImage test images, its scores match the cached features to within 2 × 10⁻⁷, and every decision agrees. The default `export_final_detector.py` still reproduces the DINOv2 detector byte for byte.
+
+#### Cross-dataset test: CIFAKE
+
+CIFAKE's test split is the first dataset outside GenImage that both exported detectors were tested on. It holds 10,000 real CIFAR-10 photos and 10,000 Stable Diffusion v1.4 images of the same ten classes. All are 32 × 32 JPEGs, so the format is matched by construction.
+- Download: the public Kaggle dataset `birdy654/cifake-real-and-ai-generated-synthetic-images` (105 MB). Put its `test/REAL` and `test/FAKE` under `dataset/image/test/CiFake/test/`.
+- Scoring, about 22 min (DINOv2) and 38 min (fusion) on an M-series Mac:
+
+```bash
+python scripts/score_final_detector.py --name cifake --real dataset/image/test/CiFake/test/REAL --fake dataset/image/test/CiFake/test/FAKE
+python scripts/score_final_detector.py --fusion --name cifake_fusion --real dataset/image/test/CiFake/test/REAL --fake dataset/image/test/CiFake/test/FAKE
+```
+
+Results are in `results/external/cifake*.md`. The DINOv3 head's row is recovered from the two CSVs: fused z = mean of the heads' z, so the DINOv3 head's z = 2 × fused − DINOv2's.
+
+| Detector | AUROC | BA @ shipped threshold | BA @ label-free GMM threshold | BA @ oracle | Real / generated recall (shipped) |
+|---|---:|---:|---:|---:|---:|
+| **DINOv2 block 20 (final detector)** | **0.853** | **76.5%** | **76.7%** | **77.1%** | 71% / 82% |
+| DINOv2 + DINOv3 fusion | 0.835 | 70.7% | 75.5% | 75.6% | 52% / 89% |
+| DINOv3 block-24 head alone | 0.709 | | | 65.4% | |
+
+**The final detector transfers to CIFAKE better than to GenImage's own 32 px test.** It reaches 76.5%, against 72.3% on GenImage Resize 32. The GenImage threshold is only 0.6 pp below the best possible one on this set. Most errors are real photos called generated (29%): at 32 px, a real photo has lost the detail the detector relies on.
+
+**The fusion, better on every GenImage condition, is worse here.**
+- On its own, the DINOv3 head is weak on CIFAKE: AUROC 0.709, against 0.853 for DINOv2. It drags the fusion down to AUROC 0.835.
+- The fusion's scores also drift: at the shipped threshold, only 52% of real photos are called real. A label-free threshold recovers most of that (75.5%), but the fusion still trails.
+- This fits GenImage's weakest condition. At Resize 32, DINOv3 block 24 alone was already below the final detector (71.3% vs 72.3%); only the fusion was ahead there.
+
+**What this changes.** The fusion's GenImage gain does not carry over to a different dataset at 32 px. It stays a candidate, but it should not replace the final detector until it wins on full-resolution external sets as well, such as Michael's COCO and Synthbuster sets. CIFAKE is one dataset with one generator, and SD v1.4 is close to the SD v1.5 images in training, so this test is about the new real photos and the tiny size more than about a new generator.
 
 If downloading the DINOv2 weights fails (in November 2026 the TLS certificate of `dl.fbaipublicfiles.com` had expired), copy an existing `dinov2_vitl14_pretrain.pth`, for example from `~/.cache/torch/hub/checkpoints/` on a machine that has already run RIGID, into `model/DINOv2/Frozen DINO model/torch_hub/checkpoints/`.
 
