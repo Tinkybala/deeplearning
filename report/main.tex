@@ -31,6 +31,9 @@
 \newcolumntype{R}{>{\raggedleft\arraybackslash}X}
 \newcommand{\best}[1]{\textbf{#1}}
 \newcommand{\pp}{\,pp}
+% every numbered section (and the references) starts on a new page
+\let\oldsection\section
+\renewcommand{\section}{\clearpage\oldsection}
 \newcommand{\why}[1]{\noindent\textit{\color{ntublue}Motivation.} #1\par\smallskip}
 \newcommand{\ledto}[1]{\par\smallskip\noindent\textit{\color{ntublue}What it led to.} #1\par}
 
