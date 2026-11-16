@@ -25,6 +25,7 @@ This document links the experiments on all three branches into one argument: wha
 | 8. Thresholds (S) | How much is threshold drift? | For block 20, most of it. A label-free threshold gives **80.2%** without knowing the degradation. | The final detector. |
 | 9. Final detector (S) | Combine block 20 with augmented training; can single images match the batch threshold? | Augmentation works on block 20: +4.6 pp. One fixed threshold gives **81.3%** on single images; a batch threshold gives 82.9%. | Can another backbone or more pixels beat it? |
 | 10. CLIP blocks and native resolution (S) | Do intermediate CLIP blocks or native-resolution tiles help? | CLIP block 16 is 92% clean but reads JPEG as "real" (59–67% format-matched); fusion adds about 1 pp. Native tiles give +4.4 pp clean, but only 1–3 pp survive size matching, and almost none of that under format matching. | DINOv3 as a stronger single backbone. |
+| 11. DINOv3 (S) | Does DINOv2's successor help, without a shortcut? | Yes. Fusing the final detector with DINOv3 block 24 is picked in 7 of 7 folds: **84.4%** mean (+3.1 pp), better in every condition, and +3.1 pp on the format-matched test. | Replace the final detector; test it on other datasets. |
 
 (M = Michael, T = Tyrone, S = Seunghwan)
 
@@ -201,6 +202,21 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 
 ---
 
+## 11. DINOv3 (Seunghwan)
+
+**Rationale.** CLIP and native resolution both failed the shortcut checks. DINOv3, DINOv2's successor trained on 1.7 billion images, is the natural next backbone. It ran through the same pipeline as CLIP: blocks 8–24, clean and augmented training, 24 candidates, nested selection (`results/dinov3_layer_experiments.md`). The weights are timm's copy of Meta's, since Meta's own copy is gated.
+
+**Results.**
+- **One detector wins every fold.** Nested selection picks the fusion of the final detector with a DINOv3 block-24 MLP in 7 of 7 folds. It reaches 84.4% mean over the six standard conditions, +3.1 pp over the final detector, with a significant gain in every condition (+2.0 to +3.8 pp). It is also ahead on every held-out generator, from +1.1 pp on Midjourney to +5.5 pp on VQDM.
+- **It passes the format check that CLIP failed.** Clean to format-matched costs 3.1 pp, the same as the final detector. On the format-matched test it gains +3.1 pp, with generated recall up from 74% to 80% and real recall unchanged.
+- **DINOv3's blocks behave like DINOv2's.** Block 20 is the best single block (93.9% clean, 90.0% format-matched with LR). Clean-only training drifts under JPEG, and augmentation fixes it, as in sections 8 and 9.
+
+**Caveats.** DINOv3 was tried after two other ideas failed, so one more backbone adds a small selection effect that the nested protocol does not measure. Its training data is not public and could contain images from these generators. The fusion costs two ViT-L passes per image.
+
+**Takeaway.** A better foundation model helps where a different one (CLIP) or more pixels did not: the gain is broad, consistent across folds and not a format shortcut. It is the strongest candidate for the final detector.
+
+---
+
 ## What the project shows
 
 1. **Frozen foundation features plus a small head generalise to unseen generators far better than a fine-tuned CNN:** 85% vs 72% on clean images, and better in every degradation.
@@ -219,5 +235,5 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **Cross-dataset test of the final detector.** `models/final_detector_dinov2_l20_mlp.pt` (trained on all 7 GenImage generators) and `scripts/score_final_detector.py` are ready to run on Michael's COCO, Unsplash, FFHQ/LSUN and Synthbuster sets.
 - **Further models.**
   - Native-resolution tiles trained with random rescaling, so that size and resampling carry no label (section 10).
-  - DINOv3 needs its gated weights; SigLIP 2 has not been tried.
+  - The DINOv2 + DINOv3 block-24 fusion (section 11) is not yet exported; it should be, and tested on other datasets beside the current final detector. SigLIP 2 has not been tried.
   - Any new backbone must also pass the format-matched test, which CLIP's intermediate blocks failed.

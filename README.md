@@ -531,6 +531,46 @@ The 448 crop matches the downscaled crop, as expected, since both end at the sam
 - Neither control is perfect: resizing to 448 upscales the 256 px fakes 1.75× but the real photos only about 1.2×. Even so, the gain is not large or clean enough to replace the final detector's view.
 - A more direct fix would be training with random rescaling, so that size and resampling carry no label. That has not been run.
 
+#### DINOv3 blocks, and DINOv3 + DINOv2
+
+DINOv3 is DINOv2's successor, trained on a much larger set (LVD-1689M). Meta's own Hugging Face copy is gated, so the weights come from timm's copy, `vit_large_patch16_dinov3.lvd1689m`, under the DINOv3 License. The model is ViT-L/16 with 24 blocks, used at 224 px with ImageNet normalisation.
+
+The run reuses the CLIP pipeline with `--backbone dinov3`:
+- `python scripts/clip_layer_features.py --backbone dinov3` (about 1 h 20 min) stores the CLS token after blocks 8, 12, 16, 20 and 24, through the final norm, for the clean and augmented training images and every test condition.
+- `python scripts/clip_layer_experiments.py --backbone dinov3` (about 1 h) compares the same 24 kinds of candidate by nested leave-one-generator-out selection and writes `results/dinov3_layer_experiments.md`.
+
+Mean balanced accuracy over the 7 holdouts, all trained on clean + augmented images:
+
+| Detector | Inner score | Clean | JPEG Q50 | Resize 32 | 128 + JPEG | **Format 256+q96** | Mean (6 std.) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Final detector (DINOv2 block 20 MLP) | 80.6% | 88.7% | 83.2% | 72.3% | 76.4% | 85.5% | 81.3% |
+| **Fusion with DINOv3 block 24 (nested pick, 7 of 7 folds)** | **83.8%** | 91.7% | 87.0% | **74.8%** | **79.9%** | 88.6% | **84.4%** |
+| DINOv2 block 20 + DINOv3 block 20, concatenated, MLP | 83.1% | 92.8% | 86.8% | 72.8% | 78.5% | 88.9% | 84.0% |
+| DINOv3 block 20 LR | 82.5% | **93.9%** | **87.4%** | 71.3% | 76.8% | **90.0%** | 83.7% |
+| DINOv3 block 24 MLP | 80.8% | 89.9% | 84.1% | 71.3% | 75.9% | 87.6% | 81.2% |
+
+Difference of the nested pick from the final detector (pp; * = paired bootstrap 95% interval excludes 0):
+
+| Clean | JPEG Q50 | Resize 128 | Resize 64 | Resize 32 | 128 + JPEG 50 | Format 256+q96 | Mean (6 std.) |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| +2.9* | +3.8* | +2.0* | +3.6* | +2.6* | +3.6* | +3.1* | +3.1* |
+
+**DINOv3 is the first addition that helps everywhere, including the format-matched test.**
+- Nested selection picks the same detector in all 7 folds: the fusion of the final detector with a DINOv3 block-24 MLP (the mean of their logits, each standardised on clean seen-val).
+- It beats the final detector in every condition, by +2.0 to +3.8 pp, and on every held-out generator (mean of 6 conditions). The largest gains are on VQDM (+5.5 pp), ADM (+3.9 pp) and Wukong (+3.3 pp); the smallest is on Midjourney (+1.1 pp).
+- **It is not a format shortcut.** From clean to format-matched it loses 3.1 pp, the same as the final detector (3.2 pp); CLIP block 16, with the same augmented training, lost 26 pp. Generated recall on the format-matched test rises from 74% to 80%, with real recall unchanged at 97%, and AUROC rises from 0.949 to 0.970.
+
+**DINOv3's own blocks behave like DINOv2's.**
+- Block 20 is the best single block, as in DINOv2: block 20 LR is the best single detector found on clean images (93.9%) and on the format-matched test (90.0%), +5.2 and +4.5 pp over the final detector. It is weaker at 32 px (−1.0 pp).
+- Early blocks (8, 12) are poor, and clean-only training breaks under JPEG Q50: the block-20 MLP keeps its AUROC (0.946) but its generated recall falls to 45%, the threshold drift of section 8. Augmented training fixes it, as it did for DINOv2.
+
+**Caveats.**
+- The candidate list is fixed and the choice among candidates is nested, but the decision to try DINOv3 was made after CLIP and native tiles had failed. One more backbone tried is a small, unmeasured selection effect.
+- DINOv3's training set is web-scale and not public. If it contains images from these generators, the gain would partly be memory. DINOv2's LVD-142M carries the same risk on a smaller scale.
+- The fusion needs two ViT-L passes per image, about twice the cost of the final detector.
+
+The exported final detector is unchanged (DINOv2 block 20 MLP). The fusion with DINOv3 block 24 is the strongest candidate to replace it.
+
 #### Exported final detector, for tests on other datasets
 
 `python scripts/export_final_detector.py` fits the final detector on all seven generators, using only cached features. It uses every generator's training fakes (14,000) and 3,200 distinct real photos from the BigGAN and VQDM folders, each clean and augmented. It saves the model to `models/final_detector_dinov2_l20_mlp.pt`: 1 MB, holding tensors and plain values only, so it is safe to load with `weights_only=True`.
@@ -575,7 +615,7 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/final_detector_experiments.py` — the final detector: block-20 probes on augmented images with batch and single-image (metadata) thresholds.
 - `scripts/export_final_detector.py`, `scripts/score_final_detector.py` — train and save the final detector on all seven generators; score any folders of real and generated images with it.
 - `scripts/augmented_layer_selection.py` — every DINOv2 layer probe with augmented training, chosen by nested leave-one-generator-out.
-- `scripts/clip_layer_features.py`, `scripts/clip_layer_experiments.py` — intermediate CLIP ViT-L/14 blocks (clean and augmented training images, all test conditions); CLIP probes and CLIP + DINOv2 fusion, chosen by nested leave-one-generator-out.
+- `scripts/clip_layer_features.py`, `scripts/clip_layer_experiments.py` — intermediate CLIP ViT-L/14 blocks (or DINOv3 ViT-L/16 blocks with `--backbone dinov3`) for clean and augmented training images and all test conditions; their probes and their fusion with DINOv2, chosen by nested leave-one-generator-out.
 - `scripts/native_tile_features.py`, `scripts/native_tile_experiments.py` — DINOv2 features at native resolution (centre crop and tile mean) compared with the downscaled crop.
 - `scripts/size_matched_tile_experiments.py` — the size-matched control: every image resized to shorter side 448 before tiling (`native_tile_features.py --size 448`).
 - `models/final_detector_dinov2_l20_mlp.pt` — the exported final detector (1 MB).
