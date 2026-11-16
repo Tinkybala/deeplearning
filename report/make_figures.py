@@ -37,7 +37,7 @@ DETECTORS = [  # label, results file, method key
     ("DINOv2 + DINOv3 fusion", "dinov3_layer_experiments", "fusion DINOv2 L20 + DINOv3 L24 [clean+both]"),
 ]
 
-plt.rcParams.update({"font.family": "serif", "font.size": 9, "axes.edgecolor": AXIS, "axes.labelcolor": INK2,
+plt.rcParams.update({"font.family": "Times New Roman", "font.size": 9, "axes.edgecolor": AXIS, "axes.labelcolor": INK2,
                      "xtick.color": MUTED, "ytick.color": INK2, "axes.linewidth": 0.8, "pdf.fonttype": 42})
 
 

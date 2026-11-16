@@ -1,0 +1,2 @@
+# Build with XeLaTeX (the report uses the system font Times New Roman through fontspec).
+$pdf_mode = 5;
