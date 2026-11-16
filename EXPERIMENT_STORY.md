@@ -24,7 +24,7 @@ This document links the experiments on all three branches into one argument: wha
 | 7. Honest model selection (S) | Does seen-generator validation pick the right model? | No, it rewards overfitting. Nested leave-one-generator-out selection confirms block 20 and gives +2.3 pp clean. | Is what remains a feature problem or a threshold problem? |
 | 8. Thresholds (S) | How much is threshold drift? | For block 20, most of it. A label-free threshold gives **80.2%** without knowing the degradation. | The final detector. |
 | 9. Final detector (S) | Combine block 20 with augmented training; can single images match the batch threshold? | Augmentation works on block 20: +4.6 pp. One fixed threshold gives **81.3%** on single images; a batch threshold gives 82.9%. | Can another backbone or more pixels beat it? |
-| 10. CLIP blocks and native resolution (S) | Do intermediate CLIP blocks or native-resolution tiles help? | CLIP block 16 is 92% clean but reads JPEG as "real" (59–67% format-matched); fusion adds about 1 pp. Native tiles give +4.4 pp clean and +5.0 pp format-matched, but drift under JPEG and may use a scale cue. | A size-matched test, then augmented training on native tiles. |
+| 10. CLIP blocks and native resolution (S) | Do intermediate CLIP blocks or native-resolution tiles help? | CLIP block 16 is 92% clean but reads JPEG as "real" (59–67% format-matched); fusion adds about 1 pp. Native tiles give +4.4 pp clean, but only 1–3 pp survive size matching, and almost none of that under format matching. | DINOv3 as a stronger single backbone. |
 
 (M = Michael, T = Tyrone, S = Seunghwan)
 
@@ -191,9 +191,13 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
   - ADM gains the most (+9.6 pp clean).
   - Midjourney, at 1024 px, is the only loss (−3.2 pp).
 - **Under JPEG Q50 the gain turns into threshold drift.** Balanced accuracy is −2.6 pp, with AUROC unchanged. That is the pattern of section 8, which augmented training fixed for the downscaled crop.
-- **Open caveat: a possible scale cue.** The native views keep each image's size, which differs by class in GenImage. Real photos (about 375 × 500) are seen zoomed in, while 256 px fakes look almost the same as in the downscaled crop. The probe could learn "native photo scale = real"; this fits the largest gains being on the 256 px generators ADM and VQDM. A size-matched test is needed before this gain is trusted.
+- **Caveat: a possible scale cue.** The native views keep each image's size, which differs by class in GenImage. Real photos (about 375 × 500) are seen zoomed in, while 256 px fakes look almost the same as in the downscaled crop.
+- **Size-matched control** (`results/size_matched_tile_experiments.md`). Every image of both classes is resized to shorter side 448 before tiling, so all have the same size and 4 tiles.
+  - On clean images about two thirds of the gain survives: +2.8 pp for the tile mean.
+  - On the format-matched test it mostly disappears: −0.2 pp for the tile mean, +1.2 pp for the centre.
+  - The native tile mean also recognises small real photos less often (93.6% vs 98.1% for the typical size). Part of its gain was a size cue.
 
-**Takeaway.** CLIP adds little that is not a shortcut. Native resolution is the most promising direction left, but it is unproven until a size-matched test rules out the scale cue. Only then is it worth training the final detector's recipe (block 20, augmented training) on native tiles.
+**Takeaway.** CLIP adds little that is not a shortcut. Native resolution adds about 1–3 pp of genuine detail, with AUROC up from 0.956 to about 0.97–0.98. The larger 4–5 pp gain leans on image size and, once size is matched, on compression. Neither is enough to replace the downscaled view of the final detector. Both new directions failed in the same way: in GenImage every shortcut (format, size, resampling) favours one class. A feature that looks better has to pass the format-matched and size-matched tests before it counts.
 
 ---
 
@@ -214,6 +218,6 @@ Nested leave-one-generator-out selection chooses by accuracy on a seen generator
 - **Label-free thresholds need a batch of images that share one degradation.** The final single-image detector doesn't need them (section 9). In GenImage, file metadata partly reveals the class: generated images are never JPEG, and BigGAN's are all 128 px. That limits how far metadata rules can be trusted on this benchmark.
 - **Cross-dataset test of the final detector.** `models/final_detector_dinov2_l20_mlp.pt` (trained on all 7 GenImage generators) and `scripts/score_final_detector.py` are ready to run on Michael's COCO, Unsplash, FFHQ/LSUN and Synthbuster sets.
 - **Further models.**
-  - A size-matched test of native-resolution tiles (section 10), then augmented training on them.
+  - Native-resolution tiles trained with random rescaling, so that size and resampling carry no label (section 10).
   - DINOv3 needs its gated weights; SigLIP 2 has not been tried.
   - Any new backbone must also pass the format-matched test, which CLIP's intermediate blocks failed.

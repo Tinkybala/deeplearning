@@ -16,7 +16,11 @@ balanced accuracy on a seen generator held out from a refit, averaged over the s
 conditions and the six inner folds; the chosen candidate is refit on all six seen generators
 and tested on the outer held-out generator. About 1-1.5 h.
 
+--backbone dinov3 runs the same candidates with DINOv3 ViT-L/16 blocks (clip_layer_features.py
+--backbone dinov3) in place of CLIP's, and writes results/dinov3_layer_experiments.md.
+
     python scripts/clip_layer_experiments.py [--rebuild]
+    python scripts/clip_layer_experiments.py --backbone dinov3
 """
 
 from __future__ import annotations
@@ -39,29 +43,40 @@ import cached_probe_experiments as cpe  # noqa: E402
 
 GENERATORS, SHORT = cpe.GENERATORS, cpe.SHORT
 CONDS, STD, LABEL = bc.CONDS, bc.dh.CONDITIONS, bc.LABEL
-AUG, CLIPS = "clean__aug-both", "__clipmid"
+AUG = "clean__aug-both"
 KS = [8, 12, 16, 20, 24]
 FINAL = "DINOv2 L20 MLP [clean+both]"
-STATE = ROOT / "results" / "_clip_layer_experiments_state.pkl"
+# backbone -> (display name, cache suffix, feature key prefix, report name)
+BACKBONES = {"clip": ("CLIP", "__clipmid", "clip_cls", "clip_layer_experiments"),
+             "dinov3": ("DINOv3", "__dinov3", "dinov3_cls", "dinov3_layer_experiments")}
 
-# name -> (list of (feature source, keys), probe kind, training set)
-SPECS = {FINAL: ([("dino", ["dino_cls20"])], "MLP", "clean+both"),
-         "DINOv2 L12-24 LR [clean+both]": ([("dino", ["dino_cls12", "dino_cls16", "dino_cls20", "dino_cls24"])], "LR", "clean+both")}
-for k in KS:
-    for kind in ("LR", "MLP"):
-        SPECS[f"CLIP L{k} {kind} [clean+both]"] = ([("clip", [f"clip_cls{k}"])], kind, "clean+both")
-for k in KS[1:]:
-    SPECS[f"CLIP L{k} MLP [clean]"] = ([("clip", [f"clip_cls{k}"])], "MLP", "clean")
-for k in (12, 16, 20):
-    SPECS[f"DINOv2 L20 + CLIP L{k} MLP [clean+both]"] = ([("dino", ["dino_cls20"]), ("clip", [f"clip_cls{k}"])], "MLP", "clean+both")
-FUSIONS = {f"fusion DINOv2 L20 + CLIP L{k} [clean+both]": (FINAL, f"CLIP L{k} MLP [clean+both]") for k in KS}
-CANDS = list(SPECS) + list(FUSIONS)
+
+def configure(backbone: str) -> None:
+    """Set the candidate list for the second backbone (module globals, as the report reads them)."""
+    global NAME, SRC, KEY, REPORT, STATE, SPECS, FUSIONS, CANDS
+    NAME, SRC, KEY, REPORT = BACKBONES[backbone]
+    STATE = ROOT / "results" / f"_{REPORT}_state.pkl"
+    # name -> (list of (feature source, keys), probe kind, training set)
+    SPECS = {FINAL: ([("dino", ["dino_cls20"])], "MLP", "clean+both"),
+             "DINOv2 L12-24 LR [clean+both]": ([("dino", ["dino_cls12", "dino_cls16", "dino_cls20", "dino_cls24"])], "LR", "clean+both")}
+    for k in KS:
+        for kind in ("LR", "MLP"):
+            SPECS[f"{NAME} L{k} {kind} [clean+both]"] = ([("other", [f"{KEY}{k}"])], kind, "clean+both")
+    for k in KS[1:]:
+        SPECS[f"{NAME} L{k} MLP [clean]"] = ([("other", [f"{KEY}{k}"])], "MLP", "clean")
+    for k in (12, 16, 20):
+        SPECS[f"DINOv2 L20 + {NAME} L{k} MLP [clean+both]"] = ([("dino", ["dino_cls20"]), ("other", [f"{KEY}{k}"])], "MLP", "clean+both")
+    FUSIONS = {f"fusion DINOv2 L20 + {NAME} L{k} [clean+both]": (FINAL, f"{NAME} L{k} MLP [clean+both]") for k in KS}
+    CANDS = list(SPECS) + list(FUSIONS)
+
+
+configure("clip")
 
 
 def gather(fstore, records, condition, parts):
     blocks = []
     for src, keys in parts:
-        blocks.append(fstore.gather(records, condition + (CLIPS if src == "clip" else ""), keys))
+        blocks.append(fstore.gather(records, condition + (SRC if src == "other" else ""), keys))
     return np.hstack(blocks)
 
 
@@ -91,8 +106,10 @@ def main() -> None:
     parser.add_argument("--rebuild", action="store_true")
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--boot-seed", type=int, default=0)
+    parser.add_argument("--backbone", choices=list(BACKBONES), default="clip")
     args = parser.parse_args()
     cpe.set_defaults(args)
+    configure(args.backbone)
     if args.rebuild:
         return report(args, *pickle.loads(STATE.read_bytes()))
     fstore = bc.FeatureStore()
@@ -136,11 +153,13 @@ def report(args, res, boots, picks, inner, seenval) -> None:
     def inner6(m):
         return float(np.mean([np.mean([inner[g][m][c] for c in STD]) for g in gens]))
 
-    lines = ["# Intermediate CLIP blocks, and CLIP + DINOv2, with nested selection",
+    lines = [f"# Intermediate {NAME} blocks, and {NAME} + DINOv2, with nested selection",
              f"Single detectors with the clean seen-generator validation threshold. **[clean+both]** = fit on clean + "
-             f"augmented images (JPEG 30–95 and/or resize to 32/64/128 px, p = 0.5 each). **CLIP Lk** = CLS token of the "
-             f"residual stream after block k of OpenAI CLIP ViT-L/14. **fusion** = mean of the DINOv2 block-20 MLP's and "
-             f"the CLIP MLP's logits, each standardised on clean seen-val. **Inner** = nested leave-one-generator-out "
+             f"augmented images (JPEG 30–95 and/or resize to 32/64/128 px, p = 0.5 each). **{NAME} Lk** = CLS token of the "
+             f"residual stream after block k of " + ("OpenAI CLIP ViT-L/14" if NAME == "CLIP" else
+                                                     "DINOv3 ViT-L/16 (LVD-1689M, through its final norm)")
+             + f". **fusion** = mean of the DINOv2 block-20 MLP's and "
+             f"the {NAME} MLP's logits, each standardised on clean seen-val. **Inner** = nested leave-one-generator-out "
              f"balanced accuracy, mean over the six standard conditions (never uses the outer test generator). Mean over "
              f"{len(gens)} holdouts; **{FINAL}** is the final detector."]
     rows = ["| Candidate | Inner (6 cond.) | Seen val | " + " | ".join(LABEL[c] for c in CONDS) + " | Mean (6 std.) |",
@@ -176,7 +195,7 @@ def report(args, res, boots, picks, inner, seenval) -> None:
             vals = [res[(g, m, c)]["balanced_accuracy"] for m in ms]
             rows.append(f"| {SHORT[g]} | " + " | ".join(f"**{v:.1%}**" if v == max(vals) else f"{v:.1%}" for v in vals) + " |")
         lines += [f"## {LABEL[c]} balanced accuracy per held-out generator", "\n".join(rows)]
-    cpe.write_report("clip_layer_experiments", lines,
+    cpe.write_report(REPORT, lines,
                      {f"{g}|{m}|{c}": v for (g, m, c), v in res.items()}
                      | {f"pick|{g}|{r}": v for (g, r), v in picks.items()}
                      | {f"inner|{g}": v for g, v in inner.items()} | {f"seenval|{g}": v for g, v in seenval.items()})

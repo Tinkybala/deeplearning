@@ -1,0 +1,1214 @@
+{
+ "imagenet_ai_0419_biggan|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.9550000000000001,
+  "auroc_real_positive": 0.995076,
+  "real_recall": 0.924,
+  "generated_recall": 0.986,
+  "threshold": -1.1160802020143061
+ },
+ "imagenet_ai_0419_biggan|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.929,
+  "auroc_real_positive": 0.98376,
+  "real_recall": 0.924,
+  "generated_recall": 0.934,
+  "threshold": -1.1160802020143061
+ },
+ "imagenet_ai_0419_biggan|20|native centre|clean": {
+  "balanced_accuracy": 0.978,
+  "auroc_real_positive": 0.998924,
+  "real_recall": 0.958,
+  "generated_recall": 0.998,
+  "threshold": -0.7480651193552016
+ },
+ "imagenet_ai_0419_biggan|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.957,
+  "auroc_real_positive": 0.9942,
+  "real_recall": 0.96,
+  "generated_recall": 0.954,
+  "threshold": -0.7480651193552016
+ },
+ "imagenet_ai_0419_biggan|20|native tile mean|clean": {
+  "balanced_accuracy": 0.985,
+  "auroc_real_positive": 0.9995799999999999,
+  "real_recall": 0.974,
+  "generated_recall": 0.996,
+  "threshold": -0.9240215438467639
+ },
+ "imagenet_ai_0419_biggan|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.966,
+  "auroc_real_positive": 0.997052,
+  "real_recall": 0.982,
+  "generated_recall": 0.95,
+  "threshold": -0.9240215438467639
+ },
+ "imagenet_ai_0419_biggan|20|448 crop|clean": {
+  "balanced_accuracy": 0.948,
+  "auroc_real_positive": 0.9974160000000001,
+  "real_recall": 0.898,
+  "generated_recall": 0.998,
+  "threshold": -0.5313590013785897
+ },
+ "imagenet_ai_0419_biggan|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.942,
+  "auroc_real_positive": 0.990292,
+  "real_recall": 0.902,
+  "generated_recall": 0.982,
+  "threshold": -0.5313590013785897
+ },
+ "imagenet_ai_0419_biggan|20|448 centre|clean": {
+  "balanced_accuracy": 0.9590000000000001,
+  "auroc_real_positive": 0.998008,
+  "real_recall": 0.918,
+  "generated_recall": 1.0,
+  "threshold": -0.5178177403372503
+ },
+ "imagenet_ai_0419_biggan|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.95,
+  "auroc_real_positive": 0.992896,
+  "real_recall": 0.918,
+  "generated_recall": 0.982,
+  "threshold": -0.5178177403372503
+ },
+ "imagenet_ai_0419_biggan|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.968,
+  "auroc_real_positive": 0.999488,
+  "real_recall": 0.936,
+  "generated_recall": 1.0,
+  "threshold": 0.1875084010644497
+ },
+ "imagenet_ai_0419_biggan|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.9610000000000001,
+  "auroc_real_positive": 0.992836,
+  "real_recall": 0.936,
+  "generated_recall": 0.986,
+  "threshold": 0.1875084010644497
+ },
+ "imagenet_ai_0419_biggan|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.8979999999999999,
+  "auroc_real_positive": 0.976564,
+  "real_recall": 0.836,
+  "generated_recall": 0.96,
+  "threshold": -0.21539648460260857
+ },
+ "imagenet_ai_0419_biggan|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.882,
+  "auroc_real_positive": 0.960116,
+  "real_recall": 0.838,
+  "generated_recall": 0.926,
+  "threshold": -0.21539648460260857
+ },
+ "imagenet_ai_0419_biggan|24|native centre|clean": {
+  "balanced_accuracy": 0.921,
+  "auroc_real_positive": 0.987436,
+  "real_recall": 0.878,
+  "generated_recall": 0.964,
+  "threshold": -0.42109453456683643
+ },
+ "imagenet_ai_0419_biggan|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.898,
+  "auroc_real_positive": 0.970064,
+  "real_recall": 0.88,
+  "generated_recall": 0.916,
+  "threshold": -0.42109453456683643
+ },
+ "imagenet_ai_0419_biggan|24|native tile mean|clean": {
+  "balanced_accuracy": 0.94,
+  "auroc_real_positive": 0.989584,
+  "real_recall": 0.916,
+  "generated_recall": 0.964,
+  "threshold": -0.6503553907643904
+ },
+ "imagenet_ai_0419_biggan|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.913,
+  "auroc_real_positive": 0.973092,
+  "real_recall": 0.916,
+  "generated_recall": 0.91,
+  "threshold": -0.6503553907643904
+ },
+ "imagenet_ai_0419_biggan|24|448 crop|clean": {
+  "balanced_accuracy": 0.9019999999999999,
+  "auroc_real_positive": 0.973948,
+  "real_recall": 0.85,
+  "generated_recall": 0.954,
+  "threshold": -0.28230151579350754
+ },
+ "imagenet_ai_0419_biggan|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.879,
+  "auroc_real_positive": 0.9501000000000001,
+  "real_recall": 0.852,
+  "generated_recall": 0.906,
+  "threshold": -0.28230151579350754
+ },
+ "imagenet_ai_0419_biggan|24|448 centre|clean": {
+  "balanced_accuracy": 0.913,
+  "auroc_real_positive": 0.975912,
+  "real_recall": 0.878,
+  "generated_recall": 0.948,
+  "threshold": -0.5164743591775517
+ },
+ "imagenet_ai_0419_biggan|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.86,
+  "auroc_real_positive": 0.9356960000000001,
+  "real_recall": 0.878,
+  "generated_recall": 0.842,
+  "threshold": -0.5164743591775517
+ },
+ "imagenet_ai_0419_biggan|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.956,
+  "auroc_real_positive": 0.994764,
+  "real_recall": 0.92,
+  "generated_recall": 0.992,
+  "threshold": -0.726336775819595
+ },
+ "imagenet_ai_0419_biggan|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.902,
+  "auroc_real_positive": 0.966008,
+  "real_recall": 0.92,
+  "generated_recall": 0.884,
+  "threshold": -0.726336775819595
+ },
+ "imagenet_ai_0419_vqdm|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.895,
+  "auroc_real_positive": 0.959724,
+  "real_recall": 0.944,
+  "generated_recall": 0.846,
+  "threshold": -0.9802945252506902
+ },
+ "imagenet_ai_0419_vqdm|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.87,
+  "auroc_real_positive": 0.95078,
+  "real_recall": 0.946,
+  "generated_recall": 0.794,
+  "threshold": -0.9802945252506902
+ },
+ "imagenet_ai_0419_vqdm|20|native centre|clean": {
+  "balanced_accuracy": 0.9530000000000001,
+  "auroc_real_positive": 0.9888520000000001,
+  "real_recall": 0.97,
+  "generated_recall": 0.936,
+  "threshold": -1.4581744916828423
+ },
+ "imagenet_ai_0419_vqdm|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.937,
+  "auroc_real_positive": 0.985516,
+  "real_recall": 0.97,
+  "generated_recall": 0.904,
+  "threshold": -1.4581744916828423
+ },
+ "imagenet_ai_0419_vqdm|20|native tile mean|clean": {
+  "balanced_accuracy": 0.967,
+  "auroc_real_positive": 0.99564,
+  "real_recall": 0.978,
+  "generated_recall": 0.956,
+  "threshold": -1.2461241452963352
+ },
+ "imagenet_ai_0419_vqdm|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.958,
+  "auroc_real_positive": 0.9937039999999999,
+  "real_recall": 0.978,
+  "generated_recall": 0.938,
+  "threshold": -1.2461241452963352
+ },
+ "imagenet_ai_0419_vqdm|20|448 crop|clean": {
+  "balanced_accuracy": 0.905,
+  "auroc_real_positive": 0.9661,
+  "real_recall": 0.948,
+  "generated_recall": 0.862,
+  "threshold": -1.214006193967087
+ },
+ "imagenet_ai_0419_vqdm|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.885,
+  "auroc_real_positive": 0.957456,
+  "real_recall": 0.948,
+  "generated_recall": 0.822,
+  "threshold": -1.214006193967087
+ },
+ "imagenet_ai_0419_vqdm|20|448 centre|clean": {
+  "balanced_accuracy": 0.913,
+  "auroc_real_positive": 0.9799359999999999,
+  "real_recall": 0.954,
+  "generated_recall": 0.872,
+  "threshold": -1.5385384360489256
+ },
+ "imagenet_ai_0419_vqdm|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.84,
+  "auroc_real_positive": 0.94784,
+  "real_recall": 0.958,
+  "generated_recall": 0.722,
+  "threshold": -1.5385384360489256
+ },
+ "imagenet_ai_0419_vqdm|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.891,
+  "auroc_real_positive": 0.978906,
+  "real_recall": 0.978,
+  "generated_recall": 0.804,
+  "threshold": -1.9955200924095826
+ },
+ "imagenet_ai_0419_vqdm|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.717,
+  "auroc_real_positive": 0.931666,
+  "real_recall": 0.978,
+  "generated_recall": 0.456,
+  "threshold": -1.9955200924095826
+ },
+ "imagenet_ai_0419_vqdm|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.877,
+  "auroc_real_positive": 0.951256,
+  "real_recall": 0.874,
+  "generated_recall": 0.88,
+  "threshold": -0.5274354049685468
+ },
+ "imagenet_ai_0419_vqdm|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.871,
+  "auroc_real_positive": 0.94544,
+  "real_recall": 0.874,
+  "generated_recall": 0.868,
+  "threshold": -0.5274354049685468
+ },
+ "imagenet_ai_0419_vqdm|24|native centre|clean": {
+  "balanced_accuracy": 0.902,
+  "auroc_real_positive": 0.970556,
+  "real_recall": 0.906,
+  "generated_recall": 0.898,
+  "threshold": -0.7058718132340038
+ },
+ "imagenet_ai_0419_vqdm|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.898,
+  "auroc_real_positive": 0.967212,
+  "real_recall": 0.906,
+  "generated_recall": 0.89,
+  "threshold": -0.7058718132340038
+ },
+ "imagenet_ai_0419_vqdm|24|native tile mean|clean": {
+  "balanced_accuracy": 0.9239999999999999,
+  "auroc_real_positive": 0.9808080000000001,
+  "real_recall": 0.948,
+  "generated_recall": 0.9,
+  "threshold": -1.1653293221334824
+ },
+ "imagenet_ai_0419_vqdm|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.917,
+  "auroc_real_positive": 0.9781680000000001,
+  "real_recall": 0.948,
+  "generated_recall": 0.886,
+  "threshold": -1.1653293221334824
+ },
+ "imagenet_ai_0419_vqdm|24|448 crop|clean": {
+  "balanced_accuracy": 0.886,
+  "auroc_real_positive": 0.958796,
+  "real_recall": 0.858,
+  "generated_recall": 0.914,
+  "threshold": -0.36093190058384284
+ },
+ "imagenet_ai_0419_vqdm|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.88,
+  "auroc_real_positive": 0.953056,
+  "real_recall": 0.86,
+  "generated_recall": 0.9,
+  "threshold": -0.36093190058384284
+ },
+ "imagenet_ai_0419_vqdm|24|448 centre|clean": {
+  "balanced_accuracy": 0.876,
+  "auroc_real_positive": 0.951632,
+  "real_recall": 0.886,
+  "generated_recall": 0.866,
+  "threshold": -0.4955279420529642
+ },
+ "imagenet_ai_0419_vqdm|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.8420000000000001,
+  "auroc_real_positive": 0.925756,
+  "real_recall": 0.888,
+  "generated_recall": 0.796,
+  "threshold": -0.4955279420529642
+ },
+ "imagenet_ai_0419_vqdm|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.892,
+  "auroc_real_positive": 0.963824,
+  "real_recall": 0.932,
+  "generated_recall": 0.852,
+  "threshold": -0.688134245134609
+ },
+ "imagenet_ai_0419_vqdm|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.821,
+  "auroc_real_positive": 0.930468,
+  "real_recall": 0.932,
+  "generated_recall": 0.71,
+  "threshold": -0.688134245134609
+ },
+ "imagenet_ai_0424_sdv5|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.928,
+  "auroc_real_positive": 0.980244,
+  "real_recall": 0.932,
+  "generated_recall": 0.924,
+  "threshold": -1.4061087980727092
+ },
+ "imagenet_ai_0424_sdv5|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.918,
+  "auroc_real_positive": 0.976756,
+  "real_recall": 0.934,
+  "generated_recall": 0.902,
+  "threshold": -1.4061087980727092
+ },
+ "imagenet_ai_0424_sdv5|20|native centre|clean": {
+  "balanced_accuracy": 0.979,
+  "auroc_real_positive": 0.998148,
+  "real_recall": 0.968,
+  "generated_recall": 0.99,
+  "threshold": -1.191967744782346
+ },
+ "imagenet_ai_0424_sdv5|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.973,
+  "auroc_real_positive": 0.995088,
+  "real_recall": 0.972,
+  "generated_recall": 0.974,
+  "threshold": -1.191967744782346
+ },
+ "imagenet_ai_0424_sdv5|20|native tile mean|clean": {
+  "balanced_accuracy": 0.978,
+  "auroc_real_positive": 0.9982279999999999,
+  "real_recall": 0.966,
+  "generated_recall": 0.99,
+  "threshold": -0.8283349636725786
+ },
+ "imagenet_ai_0424_sdv5|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.966,
+  "auroc_real_positive": 0.9956160000000001,
+  "real_recall": 0.966,
+  "generated_recall": 0.966,
+  "threshold": -0.8283349636725786
+ },
+ "imagenet_ai_0424_sdv5|20|448 crop|clean": {
+  "balanced_accuracy": 0.922,
+  "auroc_real_positive": 0.979828,
+  "real_recall": 0.932,
+  "generated_recall": 0.912,
+  "threshold": -1.0311734881364072
+ },
+ "imagenet_ai_0424_sdv5|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.915,
+  "auroc_real_positive": 0.976916,
+  "real_recall": 0.93,
+  "generated_recall": 0.9,
+  "threshold": -1.0311734881364072
+ },
+ "imagenet_ai_0424_sdv5|20|448 centre|clean": {
+  "balanced_accuracy": 0.965,
+  "auroc_real_positive": 0.995096,
+  "real_recall": 0.952,
+  "generated_recall": 0.978,
+  "threshold": -1.1776206535056897
+ },
+ "imagenet_ai_0424_sdv5|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.958,
+  "auroc_real_positive": 0.992548,
+  "real_recall": 0.954,
+  "generated_recall": 0.962,
+  "threshold": -1.1776206535056897
+ },
+ "imagenet_ai_0424_sdv5|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.965,
+  "auroc_real_positive": 0.99616,
+  "real_recall": 0.964,
+  "generated_recall": 0.966,
+  "threshold": -1.7259869025478194
+ },
+ "imagenet_ai_0424_sdv5|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.952,
+  "auroc_real_positive": 0.99344,
+  "real_recall": 0.966,
+  "generated_recall": 0.938,
+  "threshold": -1.7259869025478194
+ },
+ "imagenet_ai_0424_sdv5|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.817,
+  "auroc_real_positive": 0.8943040000000001,
+  "real_recall": 0.85,
+  "generated_recall": 0.784,
+  "threshold": -0.4867067341441852
+ },
+ "imagenet_ai_0424_sdv5|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.813,
+  "auroc_real_positive": 0.89093,
+  "real_recall": 0.85,
+  "generated_recall": 0.776,
+  "threshold": -0.4867067341441852
+ },
+ "imagenet_ai_0424_sdv5|24|native centre|clean": {
+  "balanced_accuracy": 0.875,
+  "auroc_real_positive": 0.9397240000000001,
+  "real_recall": 0.85,
+  "generated_recall": 0.9,
+  "threshold": -0.18833089220281232
+ },
+ "imagenet_ai_0424_sdv5|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.857,
+  "auroc_real_positive": 0.929384,
+  "real_recall": 0.848,
+  "generated_recall": 0.866,
+  "threshold": -0.18833089220281232
+ },
+ "imagenet_ai_0424_sdv5|24|native tile mean|clean": {
+  "balanced_accuracy": 0.882,
+  "auroc_real_positive": 0.9568159999999999,
+  "real_recall": 0.908,
+  "generated_recall": 0.856,
+  "threshold": -1.068689901734605
+ },
+ "imagenet_ai_0424_sdv5|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.851,
+  "auroc_real_positive": 0.9435159999999999,
+  "real_recall": 0.91,
+  "generated_recall": 0.792,
+  "threshold": -1.068689901734605
+ },
+ "imagenet_ai_0424_sdv5|24|448 crop|clean": {
+  "balanced_accuracy": 0.813,
+  "auroc_real_positive": 0.8944400000000001,
+  "real_recall": 0.88,
+  "generated_recall": 0.746,
+  "threshold": -0.6868426427296578
+ },
+ "imagenet_ai_0424_sdv5|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.8109999999999999,
+  "auroc_real_positive": 0.891456,
+  "real_recall": 0.88,
+  "generated_recall": 0.742,
+  "threshold": -0.6868426427296578
+ },
+ "imagenet_ai_0424_sdv5|24|448 centre|clean": {
+  "balanced_accuracy": 0.845,
+  "auroc_real_positive": 0.9282320000000001,
+  "real_recall": 0.906,
+  "generated_recall": 0.784,
+  "threshold": -0.8555194738215153
+ },
+ "imagenet_ai_0424_sdv5|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.8340000000000001,
+  "auroc_real_positive": 0.918588,
+  "real_recall": 0.904,
+  "generated_recall": 0.764,
+  "threshold": -0.8555194738215153
+ },
+ "imagenet_ai_0424_sdv5|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.904,
+  "auroc_real_positive": 0.9679000000000001,
+  "real_recall": 0.912,
+  "generated_recall": 0.896,
+  "threshold": -0.6325523584078535
+ },
+ "imagenet_ai_0424_sdv5|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.887,
+  "auroc_real_positive": 0.958604,
+  "real_recall": 0.914,
+  "generated_recall": 0.86,
+  "threshold": -0.6325523584078535
+ },
+ "imagenet_ai_0424_wukong|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.919,
+  "auroc_real_positive": 0.977256,
+  "real_recall": 0.95,
+  "generated_recall": 0.888,
+  "threshold": -0.9412747215817676
+ },
+ "imagenet_ai_0424_wukong|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.9099999999999999,
+  "auroc_real_positive": 0.975404,
+  "real_recall": 0.95,
+  "generated_recall": 0.87,
+  "threshold": -0.9412747215817676
+ },
+ "imagenet_ai_0424_wukong|20|native centre|clean": {
+  "balanced_accuracy": 0.962,
+  "auroc_real_positive": 0.994788,
+  "real_recall": 0.974,
+  "generated_recall": 0.95,
+  "threshold": -1.2322211177079276
+ },
+ "imagenet_ai_0424_wukong|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.9359999999999999,
+  "auroc_real_positive": 0.991688,
+  "real_recall": 0.976,
+  "generated_recall": 0.896,
+  "threshold": -1.2322211177079276
+ },
+ "imagenet_ai_0424_wukong|20|native tile mean|clean": {
+  "balanced_accuracy": 0.971,
+  "auroc_real_positive": 0.994736,
+  "real_recall": 0.972,
+  "generated_recall": 0.97,
+  "threshold": -0.16466530712738955
+ },
+ "imagenet_ai_0424_wukong|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.946,
+  "auroc_real_positive": 0.9918680000000001,
+  "real_recall": 0.972,
+  "generated_recall": 0.92,
+  "threshold": -0.16466530712738955
+ },
+ "imagenet_ai_0424_wukong|20|448 crop|clean": {
+  "balanced_accuracy": 0.905,
+  "auroc_real_positive": 0.97502,
+  "real_recall": 0.954,
+  "generated_recall": 0.856,
+  "threshold": -1.2608783761373545
+ },
+ "imagenet_ai_0424_wukong|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.8959999999999999,
+  "auroc_real_positive": 0.973404,
+  "real_recall": 0.958,
+  "generated_recall": 0.834,
+  "threshold": -1.2608783761373545
+ },
+ "imagenet_ai_0424_wukong|20|448 centre|clean": {
+  "balanced_accuracy": 0.9450000000000001,
+  "auroc_real_positive": 0.9880040000000001,
+  "real_recall": 0.966,
+  "generated_recall": 0.924,
+  "threshold": -1.3204943029539067
+ },
+ "imagenet_ai_0424_wukong|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.929,
+  "auroc_real_positive": 0.9858600000000001,
+  "real_recall": 0.968,
+  "generated_recall": 0.89,
+  "threshold": -1.3204943029539067
+ },
+ "imagenet_ai_0424_wukong|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.96,
+  "auroc_real_positive": 0.994368,
+  "real_recall": 0.978,
+  "generated_recall": 0.942,
+  "threshold": -1.4662719268277502
+ },
+ "imagenet_ai_0424_wukong|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.9490000000000001,
+  "auroc_real_positive": 0.9927,
+  "real_recall": 0.98,
+  "generated_recall": 0.918,
+  "threshold": -1.4662719268277502
+ },
+ "imagenet_ai_0424_wukong|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.8280000000000001,
+  "auroc_real_positive": 0.916236,
+  "real_recall": 0.864,
+  "generated_recall": 0.792,
+  "threshold": -0.5591841958750817
+ },
+ "imagenet_ai_0424_wukong|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.8200000000000001,
+  "auroc_real_positive": 0.9140360000000001,
+  "real_recall": 0.864,
+  "generated_recall": 0.776,
+  "threshold": -0.5591841958750817
+ },
+ "imagenet_ai_0424_wukong|24|native centre|clean": {
+  "balanced_accuracy": 0.873,
+  "auroc_real_positive": 0.945092,
+  "real_recall": 0.908,
+  "generated_recall": 0.838,
+  "threshold": -0.5125139839517556
+ },
+ "imagenet_ai_0424_wukong|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.855,
+  "auroc_real_positive": 0.938336,
+  "real_recall": 0.908,
+  "generated_recall": 0.802,
+  "threshold": -0.5125139839517556
+ },
+ "imagenet_ai_0424_wukong|24|native tile mean|clean": {
+  "balanced_accuracy": 0.888,
+  "auroc_real_positive": 0.958496,
+  "real_recall": 0.896,
+  "generated_recall": 0.88,
+  "threshold": -0.35275864501203197
+ },
+ "imagenet_ai_0424_wukong|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.866,
+  "auroc_real_positive": 0.9471200000000001,
+  "real_recall": 0.896,
+  "generated_recall": 0.836,
+  "threshold": -0.35275864501203197
+ },
+ "imagenet_ai_0424_wukong|24|448 crop|clean": {
+  "balanced_accuracy": 0.8089999999999999,
+  "auroc_real_positive": 0.9133439999999999,
+  "real_recall": 0.904,
+  "generated_recall": 0.714,
+  "threshold": -0.8933647831808005
+ },
+ "imagenet_ai_0424_wukong|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.8029999999999999,
+  "auroc_real_positive": 0.911192,
+  "real_recall": 0.9,
+  "generated_recall": 0.706,
+  "threshold": -0.8933647831808005
+ },
+ "imagenet_ai_0424_wukong|24|448 centre|clean": {
+  "balanced_accuracy": 0.842,
+  "auroc_real_positive": 0.927216,
+  "real_recall": 0.842,
+  "generated_recall": 0.842,
+  "threshold": -0.11638887704258957
+ },
+ "imagenet_ai_0424_wukong|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.836,
+  "auroc_real_positive": 0.917872,
+  "real_recall": 0.844,
+  "generated_recall": 0.828,
+  "threshold": -0.11638887704258957
+ },
+ "imagenet_ai_0424_wukong|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.896,
+  "auroc_real_positive": 0.9651000000000001,
+  "real_recall": 0.904,
+  "generated_recall": 0.888,
+  "threshold": -0.44714040758208967
+ },
+ "imagenet_ai_0424_wukong|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.883,
+  "auroc_real_positive": 0.957312,
+  "real_recall": 0.908,
+  "generated_recall": 0.858,
+  "threshold": -0.44714040758208967
+ },
+ "imagenet_ai_0508_adm|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.743,
+  "auroc_real_positive": 0.873834,
+  "real_recall": 0.95,
+  "generated_recall": 0.536,
+  "threshold": -0.9882477214135438
+ },
+ "imagenet_ai_0508_adm|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.6759999999999999,
+  "auroc_real_positive": 0.8382799999999999,
+  "real_recall": 0.95,
+  "generated_recall": 0.402,
+  "threshold": -0.9882477214135438
+ },
+ "imagenet_ai_0508_adm|20|native centre|clean": {
+  "balanced_accuracy": 0.7809999999999999,
+  "auroc_real_positive": 0.93974,
+  "real_recall": 0.978,
+  "generated_recall": 0.584,
+  "threshold": -1.3536626854384057
+ },
+ "imagenet_ai_0508_adm|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.711,
+  "auroc_real_positive": 0.918392,
+  "real_recall": 0.978,
+  "generated_recall": 0.444,
+  "threshold": -1.3536626854384057
+ },
+ "imagenet_ai_0508_adm|20|native tile mean|clean": {
+  "balanced_accuracy": 0.839,
+  "auroc_real_positive": 0.9557680000000001,
+  "real_recall": 0.964,
+  "generated_recall": 0.714,
+  "threshold": 0.08133696451718712
+ },
+ "imagenet_ai_0508_adm|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.786,
+  "auroc_real_positive": 0.940044,
+  "real_recall": 0.966,
+  "generated_recall": 0.606,
+  "threshold": 0.08133696451718712
+ },
+ "imagenet_ai_0508_adm|20|448 crop|clean": {
+  "balanced_accuracy": 0.758,
+  "auroc_real_positive": 0.888976,
+  "real_recall": 0.956,
+  "generated_recall": 0.56,
+  "threshold": -1.1369562028935767
+ },
+ "imagenet_ai_0508_adm|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.71,
+  "auroc_real_positive": 0.86169,
+  "real_recall": 0.958,
+  "generated_recall": 0.462,
+  "threshold": -1.1369562028935767
+ },
+ "imagenet_ai_0508_adm|20|448 centre|clean": {
+  "balanced_accuracy": 0.792,
+  "auroc_real_positive": 0.9215,
+  "real_recall": 0.962,
+  "generated_recall": 0.622,
+  "threshold": -1.0417540712134752
+ },
+ "imagenet_ai_0508_adm|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.6659999999999999,
+  "auroc_real_positive": 0.8445719999999999,
+  "real_recall": 0.964,
+  "generated_recall": 0.368,
+  "threshold": -1.0417540712134752
+ },
+ "imagenet_ai_0508_adm|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.842,
+  "auroc_real_positive": 0.9627119999999999,
+  "real_recall": 0.972,
+  "generated_recall": 0.712,
+  "threshold": -1.4932998045934822
+ },
+ "imagenet_ai_0508_adm|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.696,
+  "auroc_real_positive": 0.9157779999999999,
+  "real_recall": 0.972,
+  "generated_recall": 0.42,
+  "threshold": -1.4932998045934822
+ },
+ "imagenet_ai_0508_adm|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.714,
+  "auroc_real_positive": 0.812732,
+  "real_recall": 0.886,
+  "generated_recall": 0.542,
+  "threshold": -0.7327335601557361
+ },
+ "imagenet_ai_0508_adm|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.6890000000000001,
+  "auroc_real_positive": 0.7878079999999998,
+  "real_recall": 0.886,
+  "generated_recall": 0.492,
+  "threshold": -0.7327335601557361
+ },
+ "imagenet_ai_0508_adm|24|native centre|clean": {
+  "balanced_accuracy": 0.741,
+  "auroc_real_positive": 0.8344879999999999,
+  "real_recall": 0.908,
+  "generated_recall": 0.574,
+  "threshold": -0.7917657164919567
+ },
+ "imagenet_ai_0508_adm|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.7150000000000001,
+  "auroc_real_positive": 0.81496,
+  "real_recall": 0.908,
+  "generated_recall": 0.522,
+  "threshold": -0.7917657164919567
+ },
+ "imagenet_ai_0508_adm|24|native tile mean|clean": {
+  "balanced_accuracy": 0.749,
+  "auroc_real_positive": 0.8443639999999999,
+  "real_recall": 0.91,
+  "generated_recall": 0.588,
+  "threshold": -0.7236664040637567
+ },
+ "imagenet_ai_0508_adm|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.722,
+  "auroc_real_positive": 0.826082,
+  "real_recall": 0.912,
+  "generated_recall": 0.532,
+  "threshold": -0.7236664040637567
+ },
+ "imagenet_ai_0508_adm|24|448 crop|clean": {
+  "balanced_accuracy": 0.726,
+  "auroc_real_positive": 0.822488,
+  "real_recall": 0.892,
+  "generated_recall": 0.56,
+  "threshold": -0.7471019709048523
+ },
+ "imagenet_ai_0508_adm|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.6930000000000001,
+  "auroc_real_positive": 0.798876,
+  "real_recall": 0.892,
+  "generated_recall": 0.494,
+  "threshold": -0.7471019709048523
+ },
+ "imagenet_ai_0508_adm|24|448 centre|clean": {
+  "balanced_accuracy": 0.741,
+  "auroc_real_positive": 0.8441320000000001,
+  "real_recall": 0.876,
+  "generated_recall": 0.606,
+  "threshold": -0.5400927795024736
+ },
+ "imagenet_ai_0508_adm|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.687,
+  "auroc_real_positive": 0.794188,
+  "real_recall": 0.874,
+  "generated_recall": 0.5,
+  "threshold": -0.5400927795024736
+ },
+ "imagenet_ai_0508_adm|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.763,
+  "auroc_real_positive": 0.899572,
+  "real_recall": 0.934,
+  "generated_recall": 0.592,
+  "threshold": -1.1454667317347207
+ },
+ "imagenet_ai_0508_adm|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.674,
+  "auroc_real_positive": 0.837172,
+  "real_recall": 0.934,
+  "generated_recall": 0.414,
+  "threshold": -1.1454667317347207
+ },
+ "imagenet_glide|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.946,
+  "auroc_real_positive": 0.9913800000000001,
+  "real_recall": 0.906,
+  "generated_recall": 0.986,
+  "threshold": -0.15702748476149242
+ },
+ "imagenet_glide|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.9239999999999999,
+  "auroc_real_positive": 0.9789640000000001,
+  "real_recall": 0.906,
+  "generated_recall": 0.942,
+  "threshold": -0.15702748476149242
+ },
+ "imagenet_glide|20|native centre|clean": {
+  "balanced_accuracy": 0.979,
+  "auroc_real_positive": 0.996608,
+  "real_recall": 0.96,
+  "generated_recall": 0.998,
+  "threshold": -0.9096842055803939
+ },
+ "imagenet_glide|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.973,
+  "auroc_real_positive": 0.993636,
+  "real_recall": 0.962,
+  "generated_recall": 0.984,
+  "threshold": -0.9096842055803939
+ },
+ "imagenet_glide|20|native tile mean|clean": {
+  "balanced_accuracy": 0.983,
+  "auroc_real_positive": 0.998464,
+  "real_recall": 0.966,
+  "generated_recall": 1.0,
+  "threshold": -0.5802046856720929
+ },
+ "imagenet_glide|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.974,
+  "auroc_real_positive": 0.9966559999999999,
+  "real_recall": 0.966,
+  "generated_recall": 0.982,
+  "threshold": -0.5802046856720929
+ },
+ "imagenet_glide|20|448 crop|clean": {
+  "balanced_accuracy": 0.9590000000000001,
+  "auroc_real_positive": 0.995112,
+  "real_recall": 0.932,
+  "generated_recall": 0.986,
+  "threshold": -1.1288498961691087
+ },
+ "imagenet_glide|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.948,
+  "auroc_real_positive": 0.9899600000000001,
+  "real_recall": 0.934,
+  "generated_recall": 0.962,
+  "threshold": -1.1288498961691087
+ },
+ "imagenet_glide|20|448 centre|clean": {
+  "balanced_accuracy": 0.978,
+  "auroc_real_positive": 0.997812,
+  "real_recall": 0.958,
+  "generated_recall": 0.998,
+  "threshold": -1.0553814948258669
+ },
+ "imagenet_glide|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.966,
+  "auroc_real_positive": 0.9931080000000001,
+  "real_recall": 0.954,
+  "generated_recall": 0.978,
+  "threshold": -1.0553814948258669
+ },
+ "imagenet_glide|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.983,
+  "auroc_real_positive": 0.99842,
+  "real_recall": 0.972,
+  "generated_recall": 0.994,
+  "threshold": -1.7621494173836474
+ },
+ "imagenet_glide|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.957,
+  "auroc_real_positive": 0.991992,
+  "real_recall": 0.974,
+  "generated_recall": 0.94,
+  "threshold": -1.7621494173836474
+ },
+ "imagenet_glide|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.889,
+  "auroc_real_positive": 0.958968,
+  "real_recall": 0.874,
+  "generated_recall": 0.904,
+  "threshold": -0.3903851205430216
+ },
+ "imagenet_glide|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.865,
+  "auroc_real_positive": 0.94532,
+  "real_recall": 0.872,
+  "generated_recall": 0.858,
+  "threshold": -0.3903851205430216
+ },
+ "imagenet_glide|24|native centre|clean": {
+  "balanced_accuracy": 0.899,
+  "auroc_real_positive": 0.9621360000000001,
+  "real_recall": 0.892,
+  "generated_recall": 0.906,
+  "threshold": -0.333266374300687
+ },
+ "imagenet_glide|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.886,
+  "auroc_real_positive": 0.9529799999999998,
+  "real_recall": 0.898,
+  "generated_recall": 0.874,
+  "threshold": -0.333266374300687
+ },
+ "imagenet_glide|24|native tile mean|clean": {
+  "balanced_accuracy": 0.919,
+  "auroc_real_positive": 0.977352,
+  "real_recall": 0.926,
+  "generated_recall": 0.912,
+  "threshold": -0.7774042631624976
+ },
+ "imagenet_glide|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.904,
+  "auroc_real_positive": 0.971628,
+  "real_recall": 0.926,
+  "generated_recall": 0.882,
+  "threshold": -0.7774042631624976
+ },
+ "imagenet_glide|24|448 crop|clean": {
+  "balanced_accuracy": 0.89,
+  "auroc_real_positive": 0.960492,
+  "real_recall": 0.902,
+  "generated_recall": 0.878,
+  "threshold": -0.6356441493741126
+ },
+ "imagenet_glide|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.871,
+  "auroc_real_positive": 0.948604,
+  "real_recall": 0.9,
+  "generated_recall": 0.842,
+  "threshold": -0.6356441493741126
+ },
+ "imagenet_glide|24|448 centre|clean": {
+  "balanced_accuracy": 0.901,
+  "auroc_real_positive": 0.971452,
+  "real_recall": 0.832,
+  "generated_recall": 0.97,
+  "threshold": -0.0017770533469824684
+ },
+ "imagenet_glide|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.883,
+  "auroc_real_positive": 0.9545520000000001,
+  "real_recall": 0.832,
+  "generated_recall": 0.934,
+  "threshold": -0.0017770533469824684
+ },
+ "imagenet_glide|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.949,
+  "auroc_real_positive": 0.9887680000000001,
+  "real_recall": 0.942,
+  "generated_recall": 0.956,
+  "threshold": -1.1923758039028207
+ },
+ "imagenet_glide|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.9179999999999999,
+  "auroc_real_positive": 0.97354,
+  "real_recall": 0.938,
+  "generated_recall": 0.898,
+  "threshold": -1.1923758039028207
+ },
+ "imagenet_midjourney|20|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.8180000000000001,
+  "auroc_real_positive": 0.913728,
+  "real_recall": 0.954,
+  "generated_recall": 0.682,
+  "threshold": -1.283329665053643
+ },
+ "imagenet_midjourney|20|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.7989999999999999,
+  "auroc_real_positive": 0.9069640000000001,
+  "real_recall": 0.956,
+  "generated_recall": 0.642,
+  "threshold": -1.283329665053643
+ },
+ "imagenet_midjourney|20|native centre|clean": {
+  "balanced_accuracy": 0.8200000000000001,
+  "auroc_real_positive": 0.9473299999999999,
+  "real_recall": 0.984,
+  "generated_recall": 0.656,
+  "threshold": -1.3925905186098986
+ },
+ "imagenet_midjourney|20|native centre|fmt_q96": {
+  "balanced_accuracy": 0.81,
+  "auroc_real_positive": 0.946236,
+  "real_recall": 0.986,
+  "generated_recall": 0.634,
+  "threshold": -1.3925905186098986
+ },
+ "imagenet_midjourney|20|native tile mean|clean": {
+  "balanced_accuracy": 0.786,
+  "auroc_real_positive": 0.945576,
+  "real_recall": 0.982,
+  "generated_recall": 0.59,
+  "threshold": -1.5193881763935293
+ },
+ "imagenet_midjourney|20|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.7789999999999999,
+  "auroc_real_positive": 0.949774,
+  "real_recall": 0.986,
+  "generated_recall": 0.572,
+  "threshold": -1.5193881763935293
+ },
+ "imagenet_midjourney|20|448 crop|clean": {
+  "balanced_accuracy": 0.7829999999999999,
+  "auroc_real_positive": 0.906196,
+  "real_recall": 0.956,
+  "generated_recall": 0.61,
+  "threshold": -1.523027155783276
+ },
+ "imagenet_midjourney|20|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.772,
+  "auroc_real_positive": 0.900406,
+  "real_recall": 0.958,
+  "generated_recall": 0.586,
+  "threshold": -1.523027155783276
+ },
+ "imagenet_midjourney|20|448 centre|clean": {
+  "balanced_accuracy": 0.804,
+  "auroc_real_positive": 0.935994,
+  "real_recall": 0.976,
+  "generated_recall": 0.632,
+  "threshold": -1.6245423524257139
+ },
+ "imagenet_midjourney|20|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.804,
+  "auroc_real_positive": 0.9368319999999999,
+  "real_recall": 0.978,
+  "generated_recall": 0.63,
+  "threshold": -1.6245423524257139
+ },
+ "imagenet_midjourney|20|448 tile mean|clean": {
+  "balanced_accuracy": 0.7909999999999999,
+  "auroc_real_positive": 0.936608,
+  "real_recall": 0.976,
+  "generated_recall": 0.606,
+  "threshold": -0.5142068772677013
+ },
+ "imagenet_midjourney|20|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.78,
+  "auroc_real_positive": 0.938358,
+  "real_recall": 0.978,
+  "generated_recall": 0.582,
+  "threshold": -0.5142068772677013
+ },
+ "imagenet_midjourney|24|downscaled crop (main runs)|clean": {
+  "balanced_accuracy": 0.6819999999999999,
+  "auroc_real_positive": 0.7839160000000001,
+  "real_recall": 0.87,
+  "generated_recall": 0.494,
+  "threshold": -0.557741315262943
+ },
+ "imagenet_midjourney|24|downscaled crop (main runs)|fmt_q96": {
+  "balanced_accuracy": 0.679,
+  "auroc_real_positive": 0.7792560000000002,
+  "real_recall": 0.87,
+  "generated_recall": 0.488,
+  "threshold": -0.557741315262943
+ },
+ "imagenet_midjourney|24|native centre|clean": {
+  "balanced_accuracy": 0.758,
+  "auroc_real_positive": 0.8735039999999998,
+  "real_recall": 0.918,
+  "generated_recall": 0.598,
+  "threshold": -0.7240439587521994
+ },
+ "imagenet_midjourney|24|native centre|fmt_q96": {
+  "balanced_accuracy": 0.746,
+  "auroc_real_positive": 0.8645559999999999,
+  "real_recall": 0.918,
+  "generated_recall": 0.574,
+  "threshold": -0.7240439587521994
+ },
+ "imagenet_midjourney|24|native tile mean|clean": {
+  "balanced_accuracy": 0.741,
+  "auroc_real_positive": 0.88548,
+  "real_recall": 0.918,
+  "generated_recall": 0.564,
+  "threshold": -0.8140076641843087
+ },
+ "imagenet_midjourney|24|native tile mean|fmt_q96": {
+  "balanced_accuracy": 0.7210000000000001,
+  "auroc_real_positive": 0.868284,
+  "real_recall": 0.922,
+  "generated_recall": 0.52,
+  "threshold": -0.8140076641843087
+ },
+ "imagenet_midjourney|24|448 crop|clean": {
+  "balanced_accuracy": 0.659,
+  "auroc_real_positive": 0.7791239999999999,
+  "real_recall": 0.88,
+  "generated_recall": 0.438,
+  "threshold": -0.7140804826017394
+ },
+ "imagenet_midjourney|24|448 crop|fmt_q96": {
+  "balanced_accuracy": 0.655,
+  "auroc_real_positive": 0.7750319999999999,
+  "real_recall": 0.88,
+  "generated_recall": 0.43,
+  "threshold": -0.7140804826017394
+ },
+ "imagenet_midjourney|24|448 centre|clean": {
+  "balanced_accuracy": 0.675,
+  "auroc_real_positive": 0.8021360000000001,
+  "real_recall": 0.924,
+  "generated_recall": 0.426,
+  "threshold": -0.7508918423248498
+ },
+ "imagenet_midjourney|24|448 centre|fmt_q96": {
+  "balanced_accuracy": 0.668,
+  "auroc_real_positive": 0.79502,
+  "real_recall": 0.926,
+  "generated_recall": 0.41,
+  "threshold": -0.7508918423248498
+ },
+ "imagenet_midjourney|24|448 tile mean|clean": {
+  "balanced_accuracy": 0.724,
+  "auroc_real_positive": 0.863828,
+  "real_recall": 0.914,
+  "generated_recall": 0.534,
+  "threshold": -0.5167164346414009
+ },
+ "imagenet_midjourney|24|448 tile mean|fmt_q96": {
+  "balanced_accuracy": 0.72,
+  "auroc_real_positive": 0.8596999999999999,
+  "real_recall": 0.92,
+  "generated_recall": 0.52,
+  "threshold": -0.5167164346414009
+ },
+ "real_recall_by_size|downscaled crop (main runs)|clean|1": 0.9551282051282052,
+ "real_recall_by_size|downscaled crop (main runs)|clean|2": 0.9457530335474661,
+ "real_recall_by_size|downscaled crop (main runs)|clean|4": 0.8874538745387454,
+ "real_recall_by_size|downscaled crop (main runs)|fmt_q96|1": 0.967948717948718,
+ "real_recall_by_size|downscaled crop (main runs)|fmt_q96|2": 0.9461099214846538,
+ "real_recall_by_size|downscaled crop (main runs)|fmt_q96|4": 0.8874538745387454,
+ "real_recall_by_size|native centre|clean|1": 0.9743589743589743,
+ "real_recall_by_size|native centre|clean|2": 0.9778729478943612,
+ "real_recall_by_size|native centre|clean|4": 0.9298892988929889,
+ "real_recall_by_size|native centre|fmt_q96|1": 0.9807692307692307,
+ "real_recall_by_size|native centre|fmt_q96|2": 0.9789436117059244,
+ "real_recall_by_size|native centre|fmt_q96|4": 0.933579335793358,
+ "real_recall_by_size|native tile mean|clean|1": 0.9358974358974359,
+ "real_recall_by_size|native tile mean|clean|2": 0.9807280513918629,
+ "real_recall_by_size|native tile mean|clean|4": 0.9354243542435424,
+ "real_recall_by_size|native tile mean|fmt_q96|1": 0.9423076923076923,
+ "real_recall_by_size|native tile mean|fmt_q96|2": 0.9817987152034261,
+ "real_recall_by_size|native tile mean|fmt_q96|4": 0.940959409594096,
+ "real_recall_by_size|448 crop|clean|1": 0.9294871794871795,
+ "real_recall_by_size|448 crop|clean|2": 0.949678800856531,
+ "real_recall_by_size|448 crop|clean|4": 0.8892988929889298,
+ "real_recall_by_size|448 crop|fmt_q96|1": 0.9423076923076923,
+ "real_recall_by_size|448 crop|fmt_q96|2": 0.9503925767309065,
+ "real_recall_by_size|448 crop|fmt_q96|4": 0.8929889298892989,
+ "real_recall_by_size|448 centre|clean|1": 0.9166666666666666,
+ "real_recall_by_size|448 centre|clean|2": 0.9682369735902926,
+ "real_recall_by_size|448 centre|clean|4": 0.8985239852398524,
+ "real_recall_by_size|448 centre|fmt_q96|1": 0.9358974358974359,
+ "real_recall_by_size|448 centre|fmt_q96|2": 0.9678800856531049,
+ "real_recall_by_size|448 centre|fmt_q96|4": 0.9022140221402214,
+ "real_recall_by_size|448 tile mean|clean|1": 0.9551282051282052,
+ "real_recall_by_size|448 tile mean|clean|2": 0.9839400428265525,
+ "real_recall_by_size|448 tile mean|clean|4": 0.8892988929889298,
+ "real_recall_by_size|448 tile mean|fmt_q96|1": 0.9551282051282052,
+ "real_recall_by_size|448 tile mean|fmt_q96|2": 0.9846538187009279,
+ "real_recall_by_size|448 tile mean|fmt_q96|4": 0.8929889298892989
+}

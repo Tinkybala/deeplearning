@@ -11,6 +11,10 @@ which throws away fine detail in large images (SD v1.5 and Wukong are 512 px, Mi
                     halves), else 1; up to 4 tiles
 Images with a side under 224 px are first upscaled to shorter side 224 (BigGAN is 128 px).
 
+--size S is the size-matched control: every image, of both classes, is first resized (bicubic)
+to shorter side S, so image size and tile count no longer differ by class (S = 448 gives every
+image exactly 4 tiles). Output suffix __tiles<S>; --conds picks the test conditions.
+
 Folders: the clean training folders and every test folder under clean, JPEG Q50 and Format
 q96 (the conditions in which the image keeps its size; after the resize conditions it is at
 most 256 px, where tiling is just a centre crop). DINOv2 ViT-L/14, layer-normed CLS after
@@ -18,11 +22,13 @@ blocks 20 and 24. Output: results/backbone_embeddings/<folder>/<condition>__tile
 dino_crop{20,24}, dino_center{20,24}, dino_tilemean{20,24}, n_tiles; git-ignored, resumable). About 60k images.
 
     python scripts/native_tile_features.py [--limit 32]
+    python scripts/native_tile_features.py --size 448 --conds clean fmt_q96
 """
 
 from __future__ import annotations
 
 import argparse
+import functools
 import sys
 import time
 from pathlib import Path
@@ -53,9 +59,11 @@ def positions(n: int) -> list[int]:
     return [(n - 224) // 2] if n < 448 else [max(0, min(n - 224, n // 4 - 112)), max(0, min(n - 224, 3 * n // 4 - 112))]
 
 
-def tiles(image) -> torch.Tensor:
+def tiles(image, size: int | None = None) -> torch.Tensor:
     """(2 + k, 3, 224, 224): the main runs' downscaled crop, the native centre crop, then the k
-    grid tiles (k = 1 reuses the centre)."""
+    grid tiles (k = 1 reuses the centre). With size, the image is first resized to that shorter side."""
+    if size:
+        image = resnet.resize_shorter_side(image, size)
     crop = CROP(image)
     if min(image.size) < 224:
         image = resnet.resize_shorter_side(image, 224)
@@ -68,26 +76,26 @@ def tiles(image) -> torch.Tensor:
 
 
 class Items(torch.utils.data.Dataset):
-    def __init__(self, items):
-        self.items = items
+    def __init__(self, items, size=None):
+        self.items, self.tf = items, functools.partial(tiles, size=size)
 
     def __len__(self):
         return len(self.items)
 
     def __getitem__(self, i):
         path, condition = self.items[i]
-        return fa.FormatRecords([(path, 0, "")], tiles, condition)[0][0]
+        return fa.FormatRecords([(path, 0, "")], self.tf, condition)[0][0]
 
 
 def collate(batch):
     return torch.cat(batch), torch.tensor([len(b) for b in batch])
 
 
-def jobs(args):
+def jobs(args, conds=TEST_CONDS):
     train = [args.data_root / g / "train" / "ai" for g in bf.GENERATORS]
     train += [args.data_root / g / "train" / "nature" for g in bf.GENERATORS[:2]]
     out = [(f, "clean") for f in train]
-    for c in TEST_CONDS:
+    for c in conds:
         out += [(args.test_data_root / g / "test" / k, c) for g in bf.GENERATORS for k in ("nature", "ai")]
     return out
 
@@ -97,13 +105,16 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=16, help="images per batch (each 1-5 tiles)")
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--size", type=int, default=None, help="resize every image to this shorter side first")
+    parser.add_argument("--conds", nargs="+", default=TEST_CONDS, help="test conditions")
     args = parser.parse_args()
+    suffix = SUFFIX + (str(args.size) if args.size else "")
     cpe.set_defaults(args)
     if args.limit:
         bf.FEATURE_ROOT = bf.FEATURE_ROOT / f"_smoke_tiles_limit{args.limit}"
     todo = []
-    for folder, c in jobs(args):
-        if not bf.cache_path(folder, c + SUFFIX).exists():
+    for folder, c in jobs(args, args.conds):
+        if not bf.cache_path(folder, c + suffix).exists():
             todo.append((folder, c, sorted(p for p in folder.iterdir() if p.is_file())[:args.limit]))
     total = sum(len(f) for _, _, f in todo)
     print(f"{len(todo)} folder/condition pairs, {total} images", flush=True)
@@ -112,7 +123,7 @@ def main() -> None:
     device = bf.get_device(None)
     dino = bf.load_model("dinov2_vitl14", device=str(device))
     items = [(p, c) for _, c, files in todo for p in files]
-    loader = DataLoader(Items(items), batch_size=args.batch_size, shuffle=False, num_workers=args.workers,
+    loader = DataLoader(Items(items, args.size), batch_size=args.batch_size, shuffle=False, num_workers=args.workers,
                         collate_fn=collate)
     job, buf, feats, done, t0, ntiles = 0, 0, {}, 0, time.time(), 0
     with torch.no_grad():
@@ -139,7 +150,7 @@ def main() -> None:
                 if buf == len(files):
                     data = {k: np.concatenate(v).astype(np.float16) for k, v in feats.items()}
                     data["name"] = np.asarray([p.name for p in files])
-                    path = bf.cache_path(folder, c + SUFFIX)
+                    path = bf.cache_path(folder, c + suffix)
                     path.parent.mkdir(parents=True, exist_ok=True)
                     tmp = path.with_name(path.stem + ".tmp.npz")
                     np.savez(tmp, **data)

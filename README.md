@@ -494,7 +494,42 @@ Images smaller than 224 px (BigGAN's 128 px) are first upscaled. The images are 
 
 The probe could therefore learn "content at native photo scale = real". This would fit the largest gains being on ADM and VQDM. The format-matched test keeps native size, so it cannot rule this out. A size-matched test is needed before this gain is trusted: for example, resize every image to the same shorter side before tiling.
 
-**Next steps, not yet run:** first the size-matched test; then, if the gain survives, augmented training on native tiles. That should remove the JPEG drift, as augmentation did for block 20. This test used clean training only, so its numbers compare views, not against the augmented final detector.
+This test used clean training only, so its numbers compare views, not against the augmented final detector.
+
+#### Size-matched control for the native-resolution gain
+
+To remove the scale cue, every image of both classes, in training and test, is first resized (bicubic) to shorter side 448. Every image then has the same shorter side and exactly 4 tiles, and a tile covers the same fraction of every image.
+- Embedding: `python scripts/native_tile_features.py --size 448 --conds clean fmt_q96` (about 3.5 h).
+- Evaluation: `python scripts/size_matched_tile_experiments.py` (a few minutes), which writes `results/size_matched_tile_experiments.md`.
+
+Block 20, mean over the 7 holdouts, difference from the downscaled crop (pp; * = paired bootstrap 95% interval excludes 0):
+
+| View | Clean | Format q96 | AUROC clean / Format q96 |
+|---|---:|---:|---:|
+| Downscaled crop (main runs) | 88.6% | 86.1% | 0.956 / 0.944 |
+| Native centre | +3.5* | +3.9* | 0.981 / 0.975 |
+| Native tile mean | +4.4* | +5.0* | 0.984 / 0.981 |
+| 448 crop | −0.3 | +0.6* | 0.958 / 0.950 |
+| 448 centre | +2.2* | +1.2* | 0.974 / 0.956 |
+| 448 tile mean | +2.8* | −0.2 | 0.981 / 0.965 |
+
+The 448 crop matches the downscaled crop, as expected, since both end at the same 224 px view. The row is a sanity check.
+
+**Part of the native-resolution gain is real, but it is smaller than it looked.**
+- **On clean images, about two thirds survives size matching:** +2.8 of +4.4 pp for the tile mean, +2.2 of +3.5 pp for the centre. ADM keeps all of its gain (84.2% vs 83.9% native).
+- **On the format-matched test, most of it disappears:** +1.2 pp for the centre, −0.2 pp for the tile mean.
+  - VQDM collapses to 71.7%. Its 256 px fakes, saved as JPEG and then upscaled 1.75×, are called generated only 46% of the time, against 80% clean. At native resolution the same fakes are caught 94% of the time.
+  - The size-matched views therefore seem to read compression as "real", as CLIP's blocks did.
+- **The native tile mean depends on a real photo's size.**
+  - Real photos of the typical size (2 tiles) are recognised best: 98.1%.
+  - Small photos (1 tile, under 448 px on both sides) are recognised less often: 93.6%. That is the only size group where the tile mean is below the downscaled crop (95.5%).
+  - This is the signature of a size cue.
+
+**What remains.**
+- Finer detail adds about 1–3 pp, with AUROC up from 0.956 to about 0.97–0.98.
+- No size-free, format-free view beats the downscaled crop by more than about 1 pp.
+- Neither control is perfect: resizing to 448 upscales the 256 px fakes 1.75× but the real photos only about 1.2×. Even so, the gain is not large or clean enough to replace the final detector's view.
+- A more direct fix would be training with random rescaling, so that size and resampling carry no label. That has not been run.
 
 #### Exported final detector, for tests on other datasets
 
@@ -542,6 +577,7 @@ Update the README and report tables when adding a new holdout or experiment. Res
 - `scripts/augmented_layer_selection.py` — every DINOv2 layer probe with augmented training, chosen by nested leave-one-generator-out.
 - `scripts/clip_layer_features.py`, `scripts/clip_layer_experiments.py` — intermediate CLIP ViT-L/14 blocks (clean and augmented training images, all test conditions); CLIP probes and CLIP + DINOv2 fusion, chosen by nested leave-one-generator-out.
 - `scripts/native_tile_features.py`, `scripts/native_tile_experiments.py` — DINOv2 features at native resolution (centre crop and tile mean) compared with the downscaled crop.
+- `scripts/size_matched_tile_experiments.py` — the size-matched control: every image resized to shorter side 448 before tiling (`native_tile_features.py --size 448`).
 - `models/final_detector_dinov2_l20_mlp.pt` — the exported final detector (1 MB).
 - `EXPERIMENT_STORY.md` — how all experiments on the three branches fit together.
 - `REPORT.md` — detailed, ongoing experiment report.

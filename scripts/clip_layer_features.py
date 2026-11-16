@@ -1,4 +1,4 @@
-"""Intermediate-block CLIP ViT-L/14 features for the GenImage holdout (embedding only).
+"""Intermediate-block CLIP ViT-L/14 (or DINOv3 ViT-L/16) features for the GenImage holdout (embedding only).
 
 backbone_comparison.py found CLIP's final embedding strong on clean images but fragile under
 JPEG and resizing, as DINOv2's final layer is, while DINOv2's intermediate blocks were both
@@ -15,7 +15,13 @@ Preprocessing is the main runs' (shorter side 256, centre crop 224), then CLIP's
 normalisation. Output: results/backbone_embeddings/<folder>/<condition>__clipmid.npz with
 keys clip_cls8 ... clip_cls24 (git-ignored, resumable). About 130k images, 2-3 h.
 
+--backbone dinov3 stores the same blocks of DINOv3 ViT-L/16 (timm's copy of Meta's LVD-1689M
+weights, vit_large_patch16_dinov3.lvd1689m; DINOv3 License), layer-normed by the final norm as
+the DINOv2 features are, with ImageNet normalisation: <condition>__dinov3.npz, keys
+dinov3_cls8 ... dinov3_cls24.
+
     python scripts/clip_layer_features.py [--limit 64]
+    python scripts/clip_layer_features.py --backbone dinov3
 """
 
 from __future__ import annotations
@@ -43,6 +49,7 @@ import cached_probe_experiments as cpe  # noqa: E402
 dh = bf.fa.dh
 LAYERS = [8, 12, 16, 20, 24]
 SUFFIX = "__clipmid"
+SUFFIXES = {"clip": "__clipmid", "dinov3": "__dinov3"}
 AUG = "clean__aug-both"
 
 
@@ -65,6 +72,28 @@ class Clip:
         self.out.clear()
         self.visual(self.norm(x.to(self.device)))
         return {f"clip_cls{l}": self.out[l].float().cpu().numpy() for l in LAYERS}
+
+
+class DinoV3:
+    """DINOv3 ViT-L/16 through timm; CLS token after each block in LAYERS, through the final norm."""
+    NAME = "vit_large_patch16_dinov3.lvd1689m"
+
+    def __init__(self, device):
+        import timm
+        self.model = timm.create_model(self.NAME, pretrained=True).eval().requires_grad_(False).to(device)
+        self.device = device
+        cfg = self.model.pretrained_cfg
+        self.norm = transforms.Normalize(cfg["mean"], cfg["std"])
+        self.out = {}
+        for l in LAYERS:
+            self.model.blocks[l - 1].register_forward_hook(
+                lambda mod, inp, o, l=l: self.out.__setitem__(l, o[:, 0]))
+
+    @torch.no_grad()
+    def __call__(self, x: torch.Tensor) -> dict:
+        self.out.clear()
+        self.model.forward_features(self.norm(x.to(self.device)))
+        return {f"dinov3_cls{l}": self.model.norm(self.out[l]).float().cpu().numpy() for l in LAYERS}
 
 
 def save(path: Path, names: list[str], feats: dict) -> None:
@@ -162,11 +191,14 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="only the first N files per folder (smoke test)")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--backbone", choices=list(SUFFIXES), default="clip")
     args = parser.parse_args()
     cpe.set_defaults(args)
+    global SUFFIX
+    SUFFIX = SUFFIXES[args.backbone]
     if args.limit:
-        bf.FEATURE_ROOT = bf.FEATURE_ROOT / f"_smoke_clip_limit{args.limit}"
-    model = Clip(bf.get_device(None))
+        bf.FEATURE_ROOT = bf.FEATURE_ROOT / f"_smoke_{args.backbone}_limit{args.limit}"
+    model = (Clip if args.backbone == "clip" else DinoV3)(bf.get_device(None))
     run_augmented(args, model, args.limit)
     run_plain(args, model, args.limit)
 
