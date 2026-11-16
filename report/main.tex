@@ -116,7 +116,25 @@ GenImage~\cite{zhu2023genimage} pairs ImageNet photos with images from eight gen
 \section{Data and Evaluation Protocol}\label{sec:protocol}
 
 \subsection{GenImage subset}
-We use seven GenImage generators: BigGAN (a GAN), VQDM (vector-quantised diffusion), Stable Diffusion v1.5 and Wukong (latent diffusion), ADM and GLIDE (OpenAI pixel-space diffusion) and Midjourney (proprietary). Each provides 2,000 generated training images and 500 generated validation images. The real images are ImageNet photos shared across the generator folders; each is counted once.
+We use seven GenImage generators (Table~\ref{tab:generators}). Each provides 2,000 generated training images and 500 generated validation images, all prompted with ImageNet classes. The real images are ImageNet photos shared across the generator folders; each is counted once.
+
+\begin{table}[h]
+\centering\small
+\caption{The seven generators. Every generated image is a PNG of its generator's fixed size; the real photos are JPEGs of varied size (typically about 375$\times$500).}\label{tab:generators}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}X r@{}}
+\toprule
+Generator & Family & How it generates & Image size \\
+\midrule
+BigGAN & GAN & a generator network trained against a discriminator; one forward pass & 128 \\
+VQDM & vector-quantised diffusion & diffusion over discrete codes of a VQ autoencoder & 256 \\
+Stable Diffusion v1.5 & latent diffusion & denoising in the latent space of an autoencoder, text-conditioned & 512 \\
+Wukong & latent diffusion & a Stable-Diffusion-style model trained on Chinese text--image data & 512 \\
+ADM & pixel-space diffusion (OpenAI) & denoising directly on pixels, classifier guidance & 256 \\
+GLIDE & pixel-space diffusion (OpenAI) & text-guided pixel diffusion with upsampling & 256 \\
+Midjourney & proprietary & a commercial service (version 5); architecture not public & 1024 \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \subsection{Leave-one-generator-out splits}
 In each of the seven folds, one generator is held out entirely; the other six are \emph{seen}. With seed 42:
@@ -154,6 +172,40 @@ Choosing a layer, probe or fusion by its test score would leak the held-out gene
 
 % ================================================================== 4
 \section{Methods}
+
+\subsection{Background: the building blocks}\label{sec:background}
+This section explains briefly each model and technique the experiments use; the following subsections describe how we used them.
+
+\paragraph{Backbones.}
+\begin{itemize}
+  \item \textbf{ResNet-18}~\cite{he2016resnet} is an 18-layer convolutional network whose layers are linked by \emph{residual} (skip) connections, which make deep networks trainable. Pretrained on ImageNet classification, it is the standard starting point for \emph{fine-tuning}: all its weights are updated on the new task.
+  \item \textbf{Vision Transformer (ViT).} A ViT cuts an image into fixed-size patches (14 or 16 pixels), embeds each as a token, adds a special \emph{CLS} token, and passes all tokens through a stack of transformer blocks (24 for the ViT-L models used here, 1024-dimensional, about 300M parameters). The CLS token's output after any block summarises the image at that depth; early blocks keep more low-level detail, late blocks more semantics.
+  \item \textbf{DINOv2}~\cite{oquab2024dinov2} is a ViT-L/14 trained by \emph{self-supervised} self-distillation on 142 million curated images: a student network learns to match a teacher network's output on different crops of the same image, with no labels. Its features are general-purpose and are used here \emph{frozen}, without any weight update.
+  \item \textbf{DINOv3}~\cite{simeoni2025dinov3} is DINOv2's successor, a ViT-L/16 trained the same way on 1.7 billion images, with changes that keep its patch-level features sharp.
+  \item \textbf{CLIP}~\cite{radford2021clip} is a ViT-L/14 trained \emph{contrastively} on 400 million image--text pairs, so that an image's embedding is close to its caption's. UnivFD~\cite{ojha2023univfd} uses its frozen features for fake-image detection.
+\end{itemize}
+
+\paragraph{Detectors on frozen features.}
+\begin{itemize}
+  \item \textbf{RIGID}~\cite{he2024rigid} is training-free. It adds a little Gaussian noise to an image and measures how much the frozen DINOv2 embedding changes (cosine similarity between the two embeddings). The assumption is that real photos lie in regions of feature space that are stable under small perturbations, while generated images do not; a fixed similarity threshold decides.
+  \item \textbf{Probes.} A \emph{probe} is a small classifier trained on frozen features. A \emph{linear probe} (logistic regression) learns one weight per feature dimension; an \emph{MLP probe} adds one hidden layer and can learn non-linear combinations. Only the probe is trained, so training takes seconds and the backbone cannot overfit to the training generators.
+  \item \textbf{Anomaly detection} models only real photos: an image is flagged as generated when its features are far from the real-photo distribution, measured by Mahalanobis distance (distance in units of the real features' covariance) or by the distance to its $k$ nearest real neighbours.
+\end{itemize}
+
+\paragraph{Making detectors robust.}
+\begin{itemize}
+  \item \textbf{Data augmentation} applies the expected test-time degradations (JPEG compression, downscaling) at random to training images, so that the model learns features that survive them.
+  \item \textbf{Fusion} averages the scores (logits) of two detectors after putting them on a common scale; it helps when the detectors make different errors.
+  \item \textbf{Routing} uses a different detector, or threshold, for each kind of degradation; it needs to know or predict the degradation of each test image.
+  \item \textbf{Threshold adaptation.} A detector outputs a score, and a threshold turns it into a decision. When degradation shifts all scores, a threshold chosen on clean images misclassifies even if the ranking of images is intact. A \emph{label-free} threshold is set from the test images themselves: we fit a mixture of two Gaussians to the scores of a batch and cut where the two components cross.
+\end{itemize}
+
+\paragraph{Evaluation.}
+\begin{itemize}
+  \item \textbf{Balanced accuracy} is the mean of the recall on real photos and the recall on generated images; it is not inflated by class imbalance, and 50\% is chance. \textbf{AUROC} is the probability that a random real photo scores above a random generated image; it measures ranking regardless of the threshold.
+  \item \textbf{Leave-one-generator-out} cross-validation trains on all generators but one and tests on the one left out, in turn for each generator. \textbf{Nested} leave-one-generator-out repeats the same procedure inside the training generators to choose among models, so that the choice never sees the test generator.
+  \item \textbf{The paired bootstrap} resamples the test images with replacement many times and recomputes the difference between two detectors on each resample; the spread of those differences gives a confidence interval.
+\end{itemize}
 
 \subsection{RIGID and probes on its features}
 RIGID embeds an image $x$ and a noisy copy $x + \lambda\epsilon$ ($\epsilon \sim \mathcal{N}(0, I)$, $\lambda = 0.05$) with frozen DINOv2 ViT-L/14 and scores the image by the cosine similarity of the two embeddings; real photos are expected to score higher. As a supervised extension, a probe is trained on the clean embedding concatenated with its change under noise (\emph{clean + diff}). Real-only anomaly scores (Mahalanobis distance and $k$-nearest neighbours on real-photo features) were tried as an alternative that needs no generated images.
