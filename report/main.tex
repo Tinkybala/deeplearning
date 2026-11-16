@@ -446,7 +446,7 @@ Block-20 MLP, clean training & 88.6 & 74.7 & 78.5 & 66.4 & 66.3 & 83.4 & 76.7 \\
 \end{tabular}\end{adjustbox}
 \end{table}
 
-The final detector works on single images, needs neither the degradation type nor metadata, and averages 81.3\%: +7.1\pp\ over the main runs' DINOv2 MLP and +20.5\pp\ over the fine-tuned ResNet. When images arrive in batches that share one degradation, the label-free threshold adds 1.6\pp. Nested selection over all 32 clean and augmented layer probes picks either this detector or an augmented concatenation of blocks 12--24 (81.2\% vs 81.3\%, not significant); augmentation also removes the early blocks' fragility, lifting the concatenation from 70.2\% to 82.2\%. Figure~\ref{fig:conditions} summarises the progression, and Figure~\ref{fig:generators} shows it per generator: ADM and Midjourney remain the hardest.
+The final detector works on single images, needs neither the degradation type nor metadata, and averages 81.3\%: +7.1\pp\ over the main runs' DINOv2 MLP and +20.5\pp\ over the fine-tuned ResNet. When images arrive in batches that share one degradation, the label-free threshold adds 1.6\pp. Nested selection over all 32 clean and augmented layer probes picks either this detector or an augmented concatenation of blocks 12--24 (81.2\% vs 81.3\%, not significant); augmentation also removes the early blocks' fragility, lifting the concatenation from 70.2\% to 82.2\%. Figure~\ref{fig:conditions} summarises the progression, and Figure~\ref{fig:generators} shows it per generator: ADM and Midjourney remain the hardest. Tables~\ref{tab:pergen} and~\ref{tab:pergen6} in Appendix~\ref{app:pergen} give the per-generator numbers, clean and averaged over the six conditions.
 \ledto{Two directions remained untried: a second backbone, whose intermediate blocks might behave like DINOv2's, and more pixels, since every detector so far sees a 224-pixel crop of a downscaled image.}
 
 \begin{figure}[h]
@@ -562,7 +562,8 @@ The main open question is transfer beyond GenImage. Both detectors are exported 
 \clearpage
 \appendix
 \sloppy
-\section{Per-Generator Results}
+\section{Per-Generator Results}\label{app:pergen}
+Table~\ref{tab:pergen} gives each held-out generator's clean balanced accuracy and AUROC for the main detectors, and Table~\ref{tab:pergen6} their balanced accuracy averaged over the six standard conditions. The fine-tuned ResNet fails on VQDM, ADM and Midjourney; every frozen-feature detector finds ADM and Midjourney hardest.
 
 \begin{table}[H]
 \centering\small
